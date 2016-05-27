@@ -13,6 +13,7 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 // C++
 #include <algorithm>
@@ -165,23 +166,18 @@ inline string join(const vector<string>& values, const string& separator)
 {
   if(values.size() == 0)
     return "";
-  
+
   string::size_type size = separator.length() * values.size();
   for(uint32_t i=0; i < values.size(); i++)
     size += values[i].size();
-  
+
   string retval;
   retval.reserve(size);
   retval = values[0];
   for(uint32_t i = 1; i < values.size(); i++)
     retval += separator + values[i];
-  
-  return retval;
-}
 
-inline string join(string values[], const string& separator)
-{
-  return join(vector<string> (values, values + sizeof(values) / sizeof(*values)), separator);
+  return retval;
 }
 
 inline string chomp(const string& str)
@@ -218,6 +214,7 @@ template <typename T> inline string to_string (const T& t)
   ss << t;
   return ss.str();
 }
+
 inline string to_string (const pair<int,int>& t)
 {
   return to_string(t.first) + '/' + to_string(t.second);
@@ -237,7 +234,7 @@ inline string to_string (const double& t, const uint32_t precision)
 template <typename T> inline string to_string (const vector<T>& t)
 {
   vector<string> ts;
-  for (class vector<T>::const_iterator it = t.begin(); it!=t.end(); it++) {
+  for (typename vector<T>::const_iterator it = t.begin(); it!=t.end(); it++) {
     ts.push_back(to_string(*it));
   }
   
