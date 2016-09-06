@@ -32,7 +32,7 @@ namespace bpopsim {
               );
     
     // Applies one (random) mutation to genotype.
-    void AddOneMutation(
+    bool AddOneMutation(
                         SimulationParameters& in_simulation_parameters,
                         gsl_rng * rng
                         );
@@ -88,7 +88,7 @@ namespace bpopsim {
                          double in_average_mutation_s, 
                          const string& in_type_of_mutation, 
                          gsl_rng * randomgenerator);  
-    virtual void CreateDescendant(gsl_rng * randomgenerator, 
+    virtual bool CreateDescendant(gsl_rng * randomgenerator,
                                   cSubpopulation &ancestor, 
                                   SimulationParameters& simulation_parameters, 
                                   tree<cGenotype>& in_tree, 

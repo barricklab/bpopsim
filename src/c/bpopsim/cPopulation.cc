@@ -371,7 +371,7 @@ void cStatistics::OutputAveragePopulationMutationCounts() {
     
     cerr << "Output: " << output_file_name << endl;
     
-    output_file << "replicate";
+    output_file << "transfer";
     for (uint32_t transfer = 0; transfer < num_entries; ++transfer) {
       output_file << "\t" << (transfer * coarse_graining);
     }
@@ -858,7 +858,7 @@ void cPopulation::MutateExactWithFractionalCells()
   assert(ancestor.GetNumber() > 1.0);
 	
   
-  new_subpop.CreateDescendant(
+  bool success_adding = new_subpop.CreateDescendant(
                               rng, 
                               ancestor, 
                               simulation_parameters,
@@ -866,18 +866,21 @@ void cPopulation::MutateExactWithFractionalCells()
                               unique_genotype_count++
                               );
   
-	if (g_verbose) cout << "  Color: " << new_subpop.GetMarker() << endl;
-	if (g_verbose) cout << "  New Fitness: " << new_subpop.GetFitness() << endl;
+  if (success_adding) {
   
-	AddSubpopulation(new_subpop);
-  
-  // Update the maximum subpopulation fitness
-  maximum_subpopulation_fitness = max(maximum_subpopulation_fitness, new_subpop.GetFitness());
-  
-  if (g_verbose) cout << "  New Number: " << new_subpop.GetNumber() << endl;
-  if (g_verbose) cout << "  Old Number: " << ancestor.GetNumber() << endl;
-  
-  replicate_statistics.total_mutations++;
+    if (g_verbose) cout << "  Color: " << new_subpop.GetMarker() << endl;
+    if (g_verbose) cout << "  New Fitness: " << new_subpop.GetFitness() << endl;
+    
+    AddSubpopulation(new_subpop);
+    
+    // Update the maximum subpopulation fitness
+    maximum_subpopulation_fitness = max(maximum_subpopulation_fitness, new_subpop.GetFitness());
+    
+    if (g_verbose) cout << "  New Number: " << new_subpop.GetNumber() << endl;
+    if (g_verbose) cout << "  Old Number: " << ancestor.GetNumber() << endl;
+    
+    replicate_statistics.total_mutations++;
+  }
 }
 
 //////////  Methods for recording statistics //////////

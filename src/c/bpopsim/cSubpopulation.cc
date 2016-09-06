@@ -38,7 +38,7 @@ cGenotype::cGenotype(
   mutation_counts.resize(in_simulation_parameters.mutation_rates_per_division.size(), 0); 
 };
   
-void cGenotype::AddOneMutation(
+bool cGenotype::AddOneMutation(
                                SimulationParameters& simulation_parameters,
                                gsl_rng * rng
                                )
@@ -58,12 +58,22 @@ void cGenotype::AddOneMutation(
     
     if(simulation_parameters.mutation_fitness_effect_model=="e")
     {
-      this->this_mutation_fitness_effect = gsl_ran_exponential(rng,average_mutation_fitness_effect);	
+      this->this_mutation_fitness_effect = gsl_ran_exponential(rng,average_mutation_fitness_effect);
     }
       
     if (simulation_parameters.mutation_fitness_effect_model=="u")
     {
       this->this_mutation_fitness_effect = average_mutation_fitness_effect;
+    }
+    
+    // One-time mutations
+    if (simulation_parameters.mutation_fitness_effect_model=="o")
+    {
+      if (this->mutation_counts[this_mutation_category] < 1) {
+        this->this_mutation_fitness_effect = average_mutation_fitness_effect;
+      } else {
+        return false; // short circuit = do not add population
+      }
     }
     
     this->mutation_counts[this_mutation_category]++;
@@ -72,6 +82,8 @@ void cGenotype::AddOneMutation(
   // Update our information
   this->total_mutation_count++;
   this->fitness += this->this_mutation_fitness_effect;
+  
+  return true;
 }
   
 /* Copy constructor */
@@ -84,7 +96,7 @@ cSubpopulation::cSubpopulation(const cSubpopulation& in) :
   m_genotype = in.m_genotype;
 };
 
-void cSubpopulation::CreateDescendant(  gsl_rng * randomgenerator, 
+bool cSubpopulation::CreateDescendant(  gsl_rng * randomgenerator,
                                         cSubpopulation &ancestor, 
                                         SimulationParameters& simulation_parameters,
                                         tree<cGenotype>& in_tree, 
@@ -92,21 +104,23 @@ void cSubpopulation::CreateDescendant(  gsl_rng * randomgenerator,
                                       ) 
 {	
   if (g_verbose) cout << "Creating descendant with node_id: " << node_id << endl;
-  
-	tree<cGenotype>::iterator_base new_geno_it;
-	// There is only one new one...
-	SetNumber(1.0);
-
-	// ...taken from the ancestor.
-	ancestor.SetNumber(ancestor.GetNumber()-1.0);
-	  
-	SetMarker(ancestor.GetMarker());
 	
 	cGenotype new_genotype(simulation_parameters, node_id, ancestor.GetGenotype());
-  new_genotype.AddOneMutation(simulation_parameters, randomgenerator);
+  bool success_adding = new_genotype.AddOneMutation(simulation_parameters, randomgenerator);
+  if (!success_adding) return false;
+  
+  tree<cGenotype>::iterator_base new_geno_it;
+  // There is only one new one...
+  SetNumber(1.0);
+  
+  // ...taken from the ancestor.
+  ancestor.SetNumber(ancestor.GetNumber()-1.0);
+  
+  SetMarker(ancestor.GetMarker());
+  
   new_geno_it = in_tree.append_child(ancestor.m_genotype, new_genotype); 
 	SetGenotype(new_geno_it);
-	
+  return true;
 }
 
 void cSubpopulation::AddToTree(tree<cGenotype> &in_tree, 

@@ -42,7 +42,7 @@ int bpopsim_default_action(int argc, char* argv[])
   options("initial-fitness,z", "Initial fitness.", 1.0);
   options("mutation-rates,u", "Mutation rate per cell division. Supply option multiple times to define categories of mutations.", "1E-7");
   options("fitness-effects,s", "Mean fitness increment per mutation. Supply option multiple times to define categories of mutations.", 0.1);
-  options("fitness-effect-model,f", "Distribution of mutation fitness effects. Choices are 'u' for uniform and 'e' for exponential distributions.", 'u');
+  options("fitness-effect-model,f", "Distribution of mutation fitness effects. Choices are 'u' for uniform, 'e' for exponential distributions, 'o' for only one beneficial mutation possible in that category.", 'u');
   options("first-mutation-fitness-effects,1", "Use these fitness effects for the first mutations. Supply option multiple times to define the fitness effects of the 1st, 2nd, 3rd, etc. mutations. These values will override the -s option until the number of mutations exceeds the number of these values.");
   options("average-fitness-end-condition", "End a replicate when the average fitness of the population is this or greater (0=OFF)", 0);
   
