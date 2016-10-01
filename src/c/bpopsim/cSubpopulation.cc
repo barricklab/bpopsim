@@ -81,7 +81,12 @@ bool cGenotype::AddOneMutation(
   
   // Update our information
   this->total_mutation_count++;
-  this->fitness += this->this_mutation_fitness_effect;
+  
+  if (simulation_parameters.multiplicative_fitness_effects) {
+    this->fitness *= (1 + this->this_mutation_fitness_effect);
+  } else {
+    this->fitness += this->this_mutation_fitness_effect;
+  }
   
   return true;
 }

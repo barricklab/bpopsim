@@ -78,6 +78,7 @@ namespace bpopsim {
       generations_per_transfer = from_string<double>(options["generations-per-transfer"]);
       
       initial_fitness = from_string<double>(options["initial-fitness"]);
+      multiplicative_fitness_effects = options.count("multiplicative-fitness");
       mutation_rates_per_division = from_string<vector<double> >(options["mutation-rates"]);
       mutation_fitness_effects = from_string<vector<double> >(options["fitness-effects"]);
       mutation_fitness_effect_model = options["fitness-effect-model"];
@@ -165,11 +166,12 @@ namespace bpopsim {
     
     // Input
     double maximum_number_of_transfers;               // Maximum number of transfers before ending simulation. May end earlier for other reasons.
-    double initial_population_size;                  // Initial population size at the beginning of the simulation
-    double initial_population_size_after_transfer;   // Initial population size after transfer dilution
+    double initial_population_size;                   // Initial population size at the beginning of the simulation
+    double initial_population_size_after_transfer;    // Initial population size after transfer dilution
     double generations_per_transfer;                  // Number of binary cell divisions per transfer
     
     double initial_fitness;                           // Fitness of cells at the beginning of the simulation
+    bool multiplicative_fitness_effects;              // Multiply rather than add selection coefficients *(1+s) versus +s
     vector<double> mutation_rates_per_division;       // Rate per cell division of mutations in each category
     vector<double> mutation_fitness_effects;          // Effect of mutations in each category = selection coefficient for uniform model 
     string mutation_fitness_effect_model;             // Model for drawing fitness effects: 'u' = uniform NOT FULLY IMPLEMENTED

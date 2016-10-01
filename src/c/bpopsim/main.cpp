@@ -40,6 +40,7 @@ int bpopsim_default_action(int argc, char* argv[])
   options("population-size-after-transfer,N", "Population size after transfer", "5E6");
   options("number-of-transfers,n", "Max number of transfer to replicate", 50);
   options("initial-fitness,z", "Initial fitness.", 1.0);
+  options("multiplicative-fitness,m", "Use multiplicative fitness model [f * (1 + s)]. Default = additive [f + s].", TAKES_NO_ARGUMENT);
   options("mutation-rates,u", "Mutation rate per cell division. Supply option multiple times to define categories of mutations.", "1E-7");
   options("fitness-effects,s", "Mean fitness increment per mutation. Supply option multiple times to define categories of mutations.", 0.1);
   options("fitness-effect-model,f", "Distribution of mutation fitness effects. Choices are 'u' for uniform, 'e' for exponential distributions, 'o' for only one beneficial mutation possible in that category.", 'u');
@@ -50,7 +51,7 @@ int bpopsim_default_action(int argc, char* argv[])
   options.addUsage("==== Marker Divergence Options ====");
   options.addUsage("");
   options("marker-states,k", "Begin with the initial population divided equally into this many subpopulations each with a different state of a neutral genetic marker. Do not track genotypes. Only track the neutral marker state of each subpopulation. Default (0=OFF).", 0);
-  options("max-marker-divergence-ratio,m", "Stop if divergence factor between the subpopulations with the most abundant and next-most abundant marker state exceeds this factor.", 100);
+  options("max-marker-divergence-ratio,x", "Stop if divergence factor between the subpopulations with the most abundant and next-most abundant marker state exceeds this factor.", 100);
   options("transfer-interval-to-print,t", "Marker divergence printing intervals.", 1);
   options.addUsage("");
   options.addUsage("==== Statistical Output Files and Options ====");  
