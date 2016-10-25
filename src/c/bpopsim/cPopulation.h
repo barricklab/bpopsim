@@ -113,7 +113,7 @@ namespace bpopsim {
       // Fill in the fractional table for deciding which category mutations belong in.
       double on_mutation_rate_per_division = 0;
       for(vector<double>::iterator it=mutation_rates_per_division.begin(); it!=mutation_rates_per_division.end(); it++) {
-        on_mutation_rate_per_division += *it;
+        on_mutation_rate_per_division = *it;
         fractional_chances_of_mutation_categories.push_back(on_mutation_rate_per_division/total_mutation_rate_per_division);
       }
       

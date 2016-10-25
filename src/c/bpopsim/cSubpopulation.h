@@ -24,7 +24,7 @@ namespace bpopsim {
               uint32_t in_node_id
               );
     
-    // Constructor for children, initializes wrt acnestor correctly.
+    // Constructor for children, initializes wrt ancestor correctly.
     cGenotype(
               SimulationParameters& in_simulation_parameters, 
               uint32_t in_node_id,
