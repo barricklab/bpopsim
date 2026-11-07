@@ -149,26 +149,35 @@ Learned while testing: burn-in transfers are performed in addition to `-n`;
 the run continues until the transfer counter (which starts at `-burn_in`)
 reaches `-n`, so `-n 6 -b 3` performs 9 transfers and records 0..6.
 
-## Phase 4: Isolate GSL behind `RandomGenerator`
+## Phase 4: Isolate GSL behind `RandomGenerator` (done 2026-11-07)
 
-- [ ] `src/c/bpopsim/random.h/.cc`: class owning `gsl_rng*` via
-      `std::unique_ptr<gsl_rng, decltype(&gsl_rng_free)>`. Methods:
-      `uniform()`, `uniform_int(unsigned long n)`, `binomial(double p,
-      unsigned n)`, `exponential(double mean)`, `seed(unsigned long)`.
-      Constructed with `gsl_rng_taus2` so streams do not change.
-- [ ] Thread `RandomGenerator&` through `cPopulation`, `cSubpopulation`,
-      `cGenotype::AddOneMutation`, `SimulationParameters::DetermineMutationCategory`
-      in place of `gsl_rng*`. `random.cc` becomes the only file including
-      GSL headers. Drop `gsl_matrix.h`.
-- [ ] Fix the seed: store as `unsigned long` (what `gsl_rng_set` takes),
-      parse with the matching `from_string<>`, default from
-      `std::random_device` or `time ^ pid` without 16-bit truncation.
-      Fixed-seed output is unchanged; the unseeded default changes, say so in
-      the commit.
-- [ ] `tests/test_random.cc`: a seeded generator reproduces a short recorded
-      sequence of `uniform()`, `uniform_int()`, `binomial()`, `exponential()`
-      values (this pins cross-platform reproducibility); binomial and
-      exponential sample mean/variance over 1e5 draws match within `Approx`.
+- [x] `src/c/bpopsim/random.{h,cc}`: `RandomGenerator` owns a taus2
+      `gsl_rng` behind a pimpl (GSL's `gsl_rng` is an anonymous-struct typedef
+      and cannot be forward-declared). Methods `Uniform()`, `UniformInt(n)`,
+      `Binomial(p, n)`, `Exponential(mean)`, `Seed()`, `seed()`, and static
+      `RandomSeed()` (from `std::random_device`, never 0). Argument and return
+      types match the GSL calls exactly so streams are unchanged.
+- [x] `RandomGenerator&` threaded through `cPopulation`, `cSubpopulation`,
+      `cGenotype::AddOneMutation`, `DetermineMutationCategory`. `random.cc` is
+      the only file that includes GSL headers; `gsl_matrix.h` and the unused
+      `gsl_rng_env_setup()` call are gone. `cSubpopulation::MutantFitness`,
+      declared but never defined, removed.
+- [x] Seed is `unsigned long` parsed with the matching `from_string<>`;
+      0 draws a random seed from the OS. Fixed-seed output unchanged (golden
+      passes). The unseeded default changed from a 16-bit truncation of
+      `time * pid` to a full-width OS random value; the help text now says
+      "0 = choose a random seed and report it".
+- [x] `tests/test_random.cc` (7 cases): recorded reference sequence for seed
+      12345 (identical from conda-forge and Homebrew GSL 2.8), same seed
+      reproduces / different differs, `Seed()` restarts, `UniformInt` range
+      and coverage, binomial mean/variance and edge cases, exponential mean,
+      `RandomSeed` nonzero and varying.
+- [x] Found while doing this: CMake's Release flags define `NDEBUG`, which
+      silently removed every `assert` in the simulation, including the
+      population-size consistency checks the tests rely on. `CMakeLists.txt`
+      now strips `-DNDEBUG` from all build types. Golden still passes, so
+      the asserts hold on the reference run.
+- [x] 43/43 tests green.
 
 ## Phase 5: Mechanical modern C++ cleanup
 

@@ -1,6 +1,7 @@
 #include "doctest.h"
 #include "common.h"
 #include "cPopulation.h"
+#include "random.h"
 
 #include <cmath>
 #include <vector>
@@ -9,12 +10,6 @@ using namespace std;
 using namespace bpopsim;
 
 namespace {
-
-struct Rng {
-  Rng(unsigned long seed) : rng(gsl_rng_alloc(gsl_rng_taus2)) { gsl_rng_set(rng, seed); }
-  ~Rng() { gsl_rng_free(rng); }
-  gsl_rng* rng;
-};
 
 // A small, fast population: 1000 cells, 3 generations per transfer (8x dilution),
 // a high mutation rate so mutations actually happen in a few transfers.
@@ -44,8 +39,8 @@ TEST_CASE("a seeded simulation runs to the requested number of transfers")
 {
   const uint32_t transfers = 8;
   SimulationParameters sp = SmallPopulation(transfers);
-  Rng r(2024);
-  cPopulation pop(sp, DebugOutput(), MarkerDivergence(), r.rng, 1);
+  RandomGenerator r(2024);
+  cPopulation pop(sp, DebugOutput(), MarkerDivergence(), r, 1);
   pop.RunSimulation();
 
   const cReplicateStatistics& s = pop.replicate_statistics;
@@ -59,8 +54,8 @@ TEST_CASE("a seeded simulation runs to the requested number of transfers")
 TEST_CASE("fitness starts at the initial fitness and never decreases under beneficial mutations")
 {
   SimulationParameters sp = SmallPopulation(10);
-  Rng r(99);
-  cPopulation pop(sp, DebugOutput(), MarkerDivergence(), r.rng, 1);
+  RandomGenerator r(99);
+  cPopulation pop(sp, DebugOutput(), MarkerDivergence(), r, 1);
   pop.RunSimulation();
 
   const vector<double>& f = pop.replicate_statistics.average_population_fitness;
@@ -72,8 +67,8 @@ TEST_CASE("fitness starts at the initial fitness and never decreases under benef
 TEST_CASE("genotype frequencies sum to one at every recorded transfer")
 {
   SimulationParameters sp = SmallPopulation(10);
-  Rng r(31337);
-  cPopulation pop(sp, DebugOutput(), MarkerDivergence(), r.rng, 1);
+  RandomGenerator r(31337);
+  cPopulation pop(sp, DebugOutput(), MarkerDivergence(), r, 1);
   pop.RunSimulation();
 
   for (const GenotypeFrequencyMap& gf : pop.replicate_statistics.genotype_frequencies) {
@@ -86,8 +81,8 @@ TEST_CASE("genotype frequencies sum to one at every recorded transfer")
 TEST_CASE("the ancestral clade always has frequency one and mutations accumulate")
 {
   SimulationParameters sp = SmallPopulation(10);
-  Rng r(4242);
-  cPopulation pop(sp, DebugOutput(), MarkerDivergence(), r.rng, 1);
+  RandomGenerator r(4242);
+  cPopulation pop(sp, DebugOutput(), MarkerDivergence(), r, 1);
   pop.RunSimulation();
 
   const cReplicateStatistics& s = pop.replicate_statistics;
@@ -105,16 +100,16 @@ TEST_CASE("the same seed gives identical statistics; different seeds differ")
 {
   SimulationParameters sp = SmallPopulation(10);
 
-  Rng a(555);
-  cPopulation pa(sp, OutputParameters(), MarkerDivergence(), a.rng, 1);
+  RandomGenerator a(555);
+  cPopulation pa(sp, OutputParameters(), MarkerDivergence(), a, 1);
   pa.RunSimulation();
 
-  Rng b(555);
-  cPopulation pb(sp, OutputParameters(), MarkerDivergence(), b.rng, 1);
+  RandomGenerator b(555);
+  cPopulation pb(sp, OutputParameters(), MarkerDivergence(), b, 1);
   pb.RunSimulation();
 
-  Rng c(556);
-  cPopulation pc(sp, OutputParameters(), MarkerDivergence(), c.rng, 1);
+  RandomGenerator c(556);
+  cPopulation pc(sp, OutputParameters(), MarkerDivergence(), c, 1);
   pc.RunSimulation();
 
   CHECK(pa.replicate_statistics.average_population_fitness == pb.replicate_statistics.average_population_fitness);
@@ -127,8 +122,8 @@ TEST_CASE("average fitness end condition stops the run early")
   SimulationParameters sp = SmallPopulation(200);
   sp.average_fitness_end_condition = 1.05;
   sp.Finalize();
-  Rng r(8);
-  cPopulation pop(sp, OutputParameters(), MarkerDivergence(), r.rng, 1);
+  RandomGenerator r(8);
+  cPopulation pop(sp, OutputParameters(), MarkerDivergence(), r, 1);
   pop.RunSimulation();
 
   const vector<double>& f = pop.replicate_statistics.average_population_fitness;
@@ -144,8 +139,8 @@ TEST_CASE("burn-in transfers are not recorded")
   SimulationParameters sp = SmallPopulation(6);
   OutputParameters op;
   op.burn_in = 3;
-  Rng r(1);
-  cPopulation pop(sp, op, MarkerDivergence(), r.rng, 1);
+  RandomGenerator r(1);
+  cPopulation pop(sp, op, MarkerDivergence(), r, 1);
   pop.RunSimulation();
 
   // Transfers are numbered from -burn_in and the run continues until the
@@ -160,8 +155,8 @@ TEST_CASE("coarse graining records every Nth transfer")
   SimulationParameters sp = SmallPopulation(10);
   OutputParameters op;
   op.coarse_graining = 5;
-  Rng r(1);
-  cPopulation pop(sp, op, MarkerDivergence(), r.rng, 1);
+  RandomGenerator r(1);
+  cPopulation pop(sp, op, MarkerDivergence(), r, 1);
   pop.RunSimulation();
 
   // Records at transfers 0, 5, 10.

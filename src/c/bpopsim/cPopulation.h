@@ -137,13 +137,13 @@ namespace bpopsim {
       cerr << "  Average fitness end condition (0=OFF)         = " << average_fitness_end_condition << endl;
     }
     
-    uint32_t DetermineMutationCategory(gsl_rng * rng)
+    uint32_t DetermineMutationCategory(RandomGenerator& rng)
     {
       // Don't draw a random number if there is only one category
-      if (fractional_chances_of_mutation_categories.size() == 0) 
+      if (fractional_chances_of_mutation_categories.size() == 0)
         return 0;
-      
-      double random_fraction = gsl_rng_uniform(rng);
+
+      double random_fraction = rng.Uniform();
       uint32_t category = 0;
       while (random_fraction > fractional_chances_of_mutation_categories[category]) {
         random_fraction -= fractional_chances_of_mutation_categories[category];
@@ -222,7 +222,7 @@ namespace bpopsim {
     double num_divisions_until_next_mutation; 
     double num_completed_divisions;
 
-    gsl_rng* rng;
+    RandomGenerator& rng;
     const double log_2;
     
   public:
@@ -231,7 +231,7 @@ namespace bpopsim {
     cPopulation(const SimulationParameters& in_simulation_parameters,
                 const OutputParameters& in_output_parameters,
                 const MarkerDivergence& in_marker_divergence,
-                gsl_rng* in_rng,
+                RandomGenerator& in_rng,
                 uint32_t in_replicate);
     
     //DESTRUCTOR
@@ -276,7 +276,7 @@ namespace bpopsim {
     
     //! Calculate an amount of time to divide that won't take us over the time until the next mutation
     double CalculateDivisionsUntilNextBeneficialMutation() 
-      { return static_cast<double>(round(gsl_ran_exponential(rng, simulation_parameters.total_mutation_rate_exponential_mean))); }
+      { return static_cast<double>(round(rng.Exponential(simulation_parameters.total_mutation_rate_exponential_mean))); }
     void   ProcessCellDivisionTimeStepExactWithFractionalCells();
     
     //! Population transfer methods

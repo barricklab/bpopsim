@@ -12,7 +12,7 @@ void DefineBpopsimOptions(AnyOption& options)
   options.addUsage("");
   options.addUsage("==== Simulation Options ====");
   options.addUsage("");
-  options("rng-seed,d", "Seed for random number generator. [0 = time x pid]", 0);
+  options("rng-seed,d", "Seed for random number generator. [0 = choose a random seed and report it]", 0);
   options("replicates,r", "Replicates", 1);
   options("initial-population-size,p", "Initial population size.", "5E6");
   options("generations-per-transfer,T", "Generations per transfer", 6.64);

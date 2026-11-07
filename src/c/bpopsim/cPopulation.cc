@@ -8,7 +8,7 @@ using namespace std;
 cPopulation::cPopulation(const SimulationParameters& in_simulation_parameters,
                          const OutputParameters& in_output_parameters,
                          const MarkerDivergence& in_marker_divergence,
-                         gsl_rng* in_rng,
+                         RandomGenerator& in_rng,
                          uint32_t in_replicate)
 : simulation_parameters(in_simulation_parameters)
 , output_parameters(in_output_parameters)
@@ -675,7 +675,6 @@ void cPopulation::TransferResampleExactlyOne() {
   long int starting_size(0), random_number;
   //vector<cSubpopulation> temp_populations;
   
-  assert(rng);
   
   num_completed_transfers++; // @JEB should be moved to main loop
   current_population_size = 0; // recalculate population size
@@ -687,7 +686,7 @@ void cPopulation::TransferResampleExactlyOne() {
   //cout << "Population size before dilution: " << starting_size << endl;
   
   //for (uint32_t num_cells = 0; num_cells < m_initial_population_size_per_transfer; num_cells++) {
-  random_number = gsl_rng_uniform_int(rng, starting_size);
+  random_number = rng.UniformInt(starting_size);
   
   vector<cSubpopulation>::iterator it;
   for (it = current_subpopulations.begin(); it!=current_subpopulations.end(); ++it) {
@@ -845,7 +844,7 @@ void cPopulation::MutateExactWithFractionalCells()
   
   // Pick which one divided.
   // Gets a random number in range [0,1)
-  double random_fraction = gsl_rng_uniform(rng);
+  double random_fraction = rng.Uniform();
   uint32_t chosen_subpopulation = 0;
   while (random_fraction > fractional_chances_per_subpopulation[chosen_subpopulation]) {
     random_fraction -= fractional_chances_per_subpopulation[chosen_subpopulation];

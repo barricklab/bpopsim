@@ -36,8 +36,7 @@
 #include "tree.hh"
 #include "tree_util.hh"
 #include "icsilog.h"
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_matrix.h>
+#include "random.h"
 
 using namespace std;
 

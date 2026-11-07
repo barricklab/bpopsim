@@ -128,7 +128,13 @@ program falls back to printing usage.
   gives identical random streams on every platform for a given seed and
   version. Do not replace it with `<random>`; its distributions are not
   bit-for-bit specified across libc++ and libstdc++.
-- One `gsl_rng` (taus2) per execution. Never reseed per replicate.
+- All randomness goes through `RandomGenerator` (`random.h`), which wraps a
+  taus2 `gsl_rng`. `random.cc` is the only file that includes GSL headers;
+  keep it that way. One generator per execution, seeded once. Never reseed
+  per replicate. `tests/test_random.cc` pins the stream for seed 12345.
+- `assert()` is active in every build type (CMake strips `-DNDEBUG`). The
+  simulation uses asserts as internal consistency checks and the tests rely
+  on them.
 - Option values in scientific notation must be quoted on the command line
   (`-p "5E6"`).
 - `-u` and `-s` may be repeated to define mutation categories; the counts
@@ -150,8 +156,6 @@ program falls back to printing usage.
   selects columns by clade frequency. Fixing this changes output.
 - `TransferResampleDilution()` declares `double by_color[0]` and writes to
   it when markers are `'r'`/`'w'` (marker-divergence mode only).
-- Seed is read with `from_string<int16_t>` into a `uint16_t`; the default
-  `time(NULL) * getpid()` is truncated to 16 bits.
 - `CalculateSimilarity()` in `cPopulation.cc` is a non-void function with no
   return statement (unreferenced dead code, `-Wreturn-type`).
 - `main()` declares `char* argv_new[argc]`, a variable-length array, which is

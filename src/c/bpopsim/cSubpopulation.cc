@@ -40,7 +40,7 @@ cGenotype::cGenotype(
   
 bool cGenotype::AddOneMutation(
                                SimulationParameters& simulation_parameters,
-                               gsl_rng * rng
+                               RandomGenerator& rng
                                )
 {
   // @JEB: more of this could be moved to SimulationParameters object
@@ -58,7 +58,7 @@ bool cGenotype::AddOneMutation(
     
     if(simulation_parameters.mutation_fitness_effect_model=="e")
     {
-      this->this_mutation_fitness_effect = gsl_ran_exponential(rng,average_mutation_fitness_effect);
+      this->this_mutation_fitness_effect = rng.Exponential(average_mutation_fitness_effect);
     }
       
     if (simulation_parameters.mutation_fitness_effect_model=="u")
@@ -101,7 +101,7 @@ cSubpopulation::cSubpopulation(const cSubpopulation& in) :
   m_genotype = in.m_genotype;
 };
 
-bool cSubpopulation::CreateDescendant(  gsl_rng * randomgenerator,
+bool cSubpopulation::CreateDescendant(  RandomGenerator& randomgenerator,
                                         cSubpopulation &ancestor, 
                                         SimulationParameters& simulation_parameters,
                                         tree<cGenotype>& in_tree, 
@@ -135,14 +135,12 @@ void cSubpopulation::AddToTree(tree<cGenotype> &in_tree,
   in_tree.append_child(parent, child);
 }
 
-void cSubpopulation::Transfer(double success_prob, 
-                              gsl_rng * randomgenerator) {
-		
-	uint32_t random_gsl_int = gsl_ran_binomial(randomgenerator, 
-                                             success_prob, 
-                                             GetIntegralNumber());
-   
-	m_number = random_gsl_int;
+void cSubpopulation::Transfer(double success_prob,
+                              RandomGenerator& randomgenerator) {
+
+	uint32_t surviving_cells = randomgenerator.Binomial(success_prob, GetIntegralNumber());
+
+	m_number = surviving_cells;
 }
 
 }

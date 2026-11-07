@@ -10,10 +10,22 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# For clangd and other editor tooling: build/compile_commands.json
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release RelWithDebInfo MinSizeRel)
 endif()
+
+# Keep assert() active in every build type. The simulation uses asserts as
+# cheap internal consistency checks (population size bookkeeping, tree
+# invariants) and the unit tests rely on them firing. CMake's default Release
+# flags would define NDEBUG and silently remove them.
+foreach(cfg RELEASE RELWITHDEBINFO MINSIZEREL)
+  string(REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS_${cfg} "${CMAKE_CXX_FLAGS_${cfg}}")
+  string(REPLACE "-DNDEBUG" "" CMAKE_C_FLAGS_${cfg} "${CMAKE_C_FLAGS_${cfg}}")
+endforeach()
 
 # GSL is the single external dependency. It supplies every random draw and is
 # kept (rather than <random>) because its streams are identical on every platform
@@ -35,6 +47,7 @@ add_library(bpopsim_core STATIC
   "${BPOPSIM_SRC_DIR}/cPopulation.cc"
   "${BPOPSIM_SRC_DIR}/cSubpopulation.cc"
   "${BPOPSIM_SRC_DIR}/options.cc"
+  "${BPOPSIM_SRC_DIR}/random.cc"
   # Vendored third-party sources (not ours to restyle)
   "${BPOPSIM_SRC_DIR}/anyoption.cpp"
   "${BPOPSIM_SRC_DIR}/icsilog.c"

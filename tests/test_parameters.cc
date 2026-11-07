@@ -2,6 +2,7 @@
 #include "common.h"
 #include "cPopulation.h"
 #include "options.h"
+#include "random.h"
 
 #include <cmath>
 #include <stdexcept>
@@ -28,12 +29,6 @@ struct ParsedOptions {
   vector<string> argv_storage;
   vector<char*> argv;
   AnyOption options;
-};
-
-struct Rng {
-  Rng(unsigned long seed) : rng(gsl_rng_alloc(gsl_rng_taus2)) { gsl_rng_set(rng, seed); }
-  ~Rng() { gsl_rng_free(rng); }
-  gsl_rng* rng;
 };
 
 } // namespace
@@ -214,12 +209,12 @@ TEST_CASE("DetermineMutationCategory samples categories in proportion to their r
   sp.mutation_rates_per_division = {1e-7, 3e-7};
   sp.mutation_fitness_effects = {0.1, 0.1};
   sp.Finalize();
-  Rng r(12345);
+  RandomGenerator rng(12345);
 
   const int draws = 100000;
   int counts[2] = {0, 0};
   for (int i = 0; i < draws; ++i) {
-    uint32_t c = sp.DetermineMutationCategory(r.rng);
+    uint32_t c = sp.DetermineMutationCategory(rng);
     REQUIRE(c < 2);
     counts[c]++;
   }
@@ -230,7 +225,7 @@ TEST_CASE("DetermineMutationCategory samples categories in proportion to their r
 
 TEST_CASE("cGenotype::AddOneMutation applies the fitness-effect models")
 {
-  Rng r(7);
+  RandomGenerator rng(7);
   SimulationParameters sp;
   sp.mutation_fitness_effects = {0.1};
 
@@ -240,7 +235,7 @@ TEST_CASE("cGenotype::AddOneMutation applies the fitness-effect models")
     sp.Finalize();
     cGenotype g(sp, 0);
     CHECK(g.fitness == doctest::Approx(1.0));
-    REQUIRE(g.AddOneMutation(sp, r.rng));
+    REQUIRE(g.AddOneMutation(sp, rng));
     CHECK(g.fitness == doctest::Approx(1.1));
     CHECK(g.total_mutation_count == 1);
     REQUIRE(g.mutation_counts.size() == 1);
@@ -252,8 +247,8 @@ TEST_CASE("cGenotype::AddOneMutation applies the fitness-effect models")
     sp.multiplicative_fitness_effects = true;
     sp.Finalize();
     cGenotype g(sp, 0);
-    REQUIRE(g.AddOneMutation(sp, r.rng));
-    REQUIRE(g.AddOneMutation(sp, r.rng));
+    REQUIRE(g.AddOneMutation(sp, rng));
+    REQUIRE(g.AddOneMutation(sp, rng));
     CHECK(g.fitness == doctest::Approx(1.1 * 1.1));
     CHECK(g.total_mutation_count == 2);
   }
@@ -263,9 +258,9 @@ TEST_CASE("cGenotype::AddOneMutation applies the fitness-effect models")
     sp.mutation_fitness_effect_model = "o";
     sp.Finalize();
     cGenotype g(sp, 0);
-    REQUIRE(g.AddOneMutation(sp, r.rng));
+    REQUIRE(g.AddOneMutation(sp, rng));
     CHECK(g.fitness == doctest::Approx(1.1));
-    CHECK_FALSE(g.AddOneMutation(sp, r.rng));
+    CHECK_FALSE(g.AddOneMutation(sp, rng));
     CHECK(g.fitness == doctest::Approx(1.1));
     CHECK(g.total_mutation_count == 1);
   }
@@ -275,10 +270,10 @@ TEST_CASE("cGenotype::AddOneMutation applies the fitness-effect models")
     sp.first_mutation_fitness_effects = {0.5};
     sp.Finalize();
     cGenotype g(sp, 0);
-    REQUIRE(g.AddOneMutation(sp, r.rng));
+    REQUIRE(g.AddOneMutation(sp, rng));
     CHECK(g.fitness == doctest::Approx(1.5));
     // Second mutation falls back to the category effect.
-    REQUIRE(g.AddOneMutation(sp, r.rng));
+    REQUIRE(g.AddOneMutation(sp, rng));
     CHECK(g.fitness == doctest::Approx(1.6));
   }
 
@@ -286,7 +281,7 @@ TEST_CASE("cGenotype::AddOneMutation applies the fitness-effect models")
   {
     sp.Finalize();
     cGenotype parent(sp, 0);
-    REQUIRE(parent.AddOneMutation(sp, r.rng));
+    REQUIRE(parent.AddOneMutation(sp, rng));
     cGenotype child(sp, 1, parent);
     CHECK(child.fitness == doctest::Approx(parent.fitness));
     CHECK(child.total_mutation_count == 1);

@@ -1,24 +1,10 @@
 #include "common.h"
 #include "cPopulation.h"
 #include "options.h"
+#include "random.h"
 
 using namespace bpopsim;
 using namespace std;
-
-gsl_rng* initialize_random_number_generator(uint16_t& seed)
-{
-  const gsl_rng_type *T;
-  gsl_rng * randgen;
-  gsl_rng_env_setup();
-  T = gsl_rng_taus2;
-  randgen = gsl_rng_alloc(T);
-  
-  if (!seed)
-    seed = time(NULL) * getpid();
-  
-  gsl_rng_set(randgen, seed);
-  return randgen;
-}
 
 int bpopsim_default_action(int argc, char* argv[])
 {
@@ -67,8 +53,9 @@ int bpopsim_default_action(int argc, char* argv[])
   create_path(output_parameters.output_directory_name);
 
   // Use one main random number generator for entire program (don't reset for each replicate)
-  uint16_t rng_seed = from_string<int16_t>(options["rng-seed"]);
-  gsl_rng* rng = initialize_random_number_generator(rng_seed);
+  unsigned long rng_seed = from_string<unsigned long>(options["rng-seed"]);
+  if (rng_seed == 0) rng_seed = RandomGenerator::RandomSeed();
+  RandomGenerator rng(rng_seed);
 
   uint32_t replicates = from_string<uint32_t>(options["replicates"]);
 
