@@ -120,7 +120,7 @@ cmake --build "${BUILD_DIR}" --parallel
 ctest --test-dir "${BUILD_DIR}" --output-on-failure
 cmake --install "${BUILD_DIR}"
 
-cp COPYING "${STAGE_DIR}/"
+cp COPYING README.md "${STAGE_DIR}/"
 
 tar -czf "${NAME}.tar.gz" "${NAME}"
 rm -rf "${STAGE_DIR}"

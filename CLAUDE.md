@@ -23,7 +23,10 @@ work through it one phase at a time.
   (Kasper Peeters' STL-like n-ary tree, holds the genotype ancestry) and
   `anyoption.{h,cpp}` (command-line parser, locally modified; see the
   `init()` and `word_wrap()` fixes noted in `docs/MODERNIZATION.md`).
-- `src/c/bpopsim.1` man page (still the Xcode template, not filled in).
+- `src/c/bpopsim.1` man page, covering every option and output file. Update
+  it together with `options.cc` and the option table in `README.md`.
+- `.github/workflows/build-and-test.yml` builds and runs `ctest` plus a
+  clang-format check on Ubuntu and macOS from `environment.yml`.
 - `CMakeLists.txt` build. `tests/` holds the doctest unit tests
   (`test_*.cc`, one `TEST_CASE` per CTest entry), the vendored doctest in
   `tests/third_party/doctest/`, and the golden regression test

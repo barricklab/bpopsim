@@ -1,0 +1,13 @@
+bpopsim authors (from the project history)
+
+Jeffrey E. Barrick <jeffrey.e.barrick@gmail.com>
+Austin G. Meyer
+James Dittmar
+Daniel Deatherage
+David B. Knoester (original autotools build, shared with breseq)
+Aaron Reba (src/python/muller_plot.py)
+
+Vendored third-party code:
+  src/c/third_party/tree.hh, tree_util.hh  Kasper Peeters (GPL v3)
+  src/c/third_party/anyoption.*            Kishan Thomas (public domain / MIT), locally modified
+  tests/third_party/doctest                Viktor Kirilov (MIT)

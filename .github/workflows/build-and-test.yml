@@ -1,0 +1,62 @@
+name: build-and-test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build-test:
+    name: build & test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false          # let both OS jobs finish independently
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash -el {0}      # login shell so the conda env is activated
+    steps:
+      - uses: actions/checkout@v5
+
+      # Same environment developers use locally (environment.yml): compiler,
+      # cmake, make, clang-tools, and the pinned GSL.
+      - name: Set up conda environment
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          environment-file: environment.yml
+          activate-environment: bpopsim
+          auto-activate: false
+
+      - name: Configure
+        run: |
+          test -n "$CONDA_PREFIX" || { echo "::error::conda env not activated (CONDA_PREFIX unset)"; exit 1; }
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      # Includes golden_regression: the fixed-seed run in tests/golden/COMMAND
+      # must reproduce tests/golden/ byte for byte. Passing on both Linux and
+      # macOS is the check that seeded output is reproducible across platforms.
+      - name: Test
+        run: ctest --test-dir build --output-on-failure --timeout 120
+
+      - name: Check formatting of our sources
+        run: |
+          clang-format --dry-run --Werror \
+            src/c/bpopsim/*.cc src/c/bpopsim/*.h src/c/bpopsim/main.cpp \
+            tests/*.cc tests/main.cpp
+
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-${{ matrix.os }}
+          path: |
+            build/Testing/Temporary/LastTest.log
+            build/tests/golden_out/
+          if-no-files-found: ignore
+          retention-days: 14

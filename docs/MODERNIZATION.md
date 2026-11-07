@@ -271,16 +271,28 @@ Bugs found and fixed along the way (none affect golden output):
       drop the global using-directives.
 - [x] Build warning-free; 44/44 tests; golden identical.
 
-## Phase 7: Quality of life
+## Phase 7: Quality of life (done 2026-11-07, CI unverified until pushed)
 
-- [ ] CI (GitHub Actions or a local script): build and `ctest` on macOS and
-      Ubuntu with GSL from the package manager. Passing the golden test on
-      both confirms cross-platform reproducibility.
-- [ ] Write `README` from the CLAUDE.md overview and build sections.
-- [ ] Replace the template `src/c/bpopsim.1` with real content, or generate
-      it from the usage text.
+- [x] `.github/workflows/build-and-test.yml`: ubuntu-latest and macos-latest,
+      conda env from `environment.yml` via `conda-incubator/setup-miniconda`
+      (same pattern as breseq), `cmake` configure/build, `ctest` with the
+      golden regression, `clang-format --dry-run --Werror` on our sources,
+      test logs uploaded on failure. Passing the golden test on Linux is the
+      first cross-OS confirmation of seeded reproducibility; until the
+      workflow has run on GitHub this is untested.
+- [x] `README.md` written (overview, build, run, option and output-file
+      tables, reproducibility, license). Empty `README`, `ChangeLog`, `NEWS`
+      removed; `AUTHORS` filled from the git history and vendored code.
+- [x] `src/c/bpopsim.1` rewritten as a real man page covering every option
+      and output file, including which options currently do nothing.
+      Installed by `cmake --install` and included in `binarydist.sh` tarballs
+      along with `README.md` and `COPYING`.
 - [ ] Remove the "Known issues" and "Uncommitted work" sections of
-      `CLAUDE.md` as they are resolved.
+      `CLAUDE.md` as they are resolved. Still open: `GenotypesAboveThreshold`
+      reading clade frequencies (an intentional output change when fixed),
+      `--output-largest-sweep-size` unimplemented, `burn_in` parsed unsigned,
+      marker-mode `-x`/`-t` inert, and the stashed `vector<vector<double>>`
+      work.
 
 ## Verification at every phase
 

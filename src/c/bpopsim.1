@@ -1,79 +1,214 @@
-.\"Modified from man(1) of FreeBSD, the NetBSD mdoc.template, and mdoc.samples.
-.\"See Also:
-.\"man mdoc.samples for a complete listing of options
-.\"man mdoc for the short list of editing options
-.\"/usr/share/misc/mdoc.template
-.Dd 7/19/10               \" DATE 
-.Dt popsim 1      \" Program name and manual section number 
-.Os Darwin
-.Sh NAME                 \" Section Header - required - don't modify 
-.Nm popsim,
-.\" The following lines are read in generating the apropos(man -k) database. Use only key
-.\" words here as the database is built based on the words here and in the .ND line. 
-.Nm Other_name_for_same_program(),
-.Nm Yet another name for the same program.
-.\" Use .Nm macro to designate other names for the documented program.
-.Nd This line parsed for whatis database.
-.Sh SYNOPSIS             \" Section Header - required - don't modify
-.Nm
-.Op Fl abcd              \" [-abcd]
-.Op Fl a Ar path         \" [-a path] 
-.Op Ar file              \" [file]
-.Op Ar                   \" [file ...]
-.Ar arg0                 \" Underlined argument - use .Ar anywhere to underline
-arg2 ...                 \" Arguments
-.Sh DESCRIPTION          \" Section Header - required - don't modify
-Use the .Nm macro to refer to your program throughout the man page like such:
-.Nm
-Underlining is accomplished with the .Ar macro like this:
-.Ar underlined text .
-.Pp                      \" Inserts a space
-A list of items with descriptions:
-.Bl -tag -width -indent  \" Begins a tagged list 
-.It item a               \" Each item preceded by .It macro
-Description of item a
-.It item b
-Description of item b
-.El                      \" Ends the list
-.Pp
-A list of flags and their descriptions:
-.Bl -tag -width -indent  \" Differs from above in tag removed 
-.It Fl a                 \"-a flag as a list item
-Description of -a flag
-.It Fl b
-Description of -b flag
-.El                      \" Ends the list
-.Pp
-.\" .Sh ENVIRONMENT      \" May not be needed
-.\" .Bl -tag -width "ENV_VAR_1" -indent \" ENV_VAR_1 is width of the string ENV_VAR_1
-.\" .It Ev ENV_VAR_1
-.\" Description of ENV_VAR_1
-.\" .It Ev ENV_VAR_2
-.\" Description of ENV_VAR_2
-.\" .El                      
-.Sh FILES                \" File used or created by the topic of the man page
-.Bl -tag -width "/Users/joeuser/Library/really_long_file_name" -compact
-.It Pa /usr/share/file_name
-FILE_1 description
-.It Pa /Users/joeuser/Library/really_long_file_name
-FILE_2 description
-.El                      \" Ends the list
-.\" .Sh DIAGNOSTICS       \" May not be needed
-.\" .Bl -diag
-.\" .It Diagnostic Tag
-.\" Diagnostic informtion here.
-.\" .It Diagnostic Tag
-.\" Diagnostic informtion here.
-.\" .El
-.Sh SEE ALSO 
-.\" List links in ascending order by section, alphabetically within a section.
-.\" Please do not reference files that do not exist without filing a bug report
-.Xr a 1 , 
-.Xr b 1 ,
-.Xr c 1 ,
-.Xr a 2 ,
-.Xr b 2 ,
-.Xr a 3 ,
-.Xr b 3 
-.\" .Sh BUGS              \" Document known, unremedied bugs 
-.\" .Sh HISTORY           \" Document history if command behaves in a unique manner 
+.TH BPOPSIM 1 "2026-11-07" "bpopsim 0.1" "User Commands"
+.SH NAME
+bpopsim \- simulate asexual population evolution under serial transfer
+.SH SYNOPSIS
+.B bpopsim
+.RI [ options ]
+.B \-\-output\-\fIKIND\fR
+.RI [ \-\-output\-KIND ...]
+.SH DESCRIPTION
+.B bpopsim
+simulates a population of asexual cells propagated by serial transfer. In
+each transfer the population grows by binary division for a fixed number of
+generations, is diluted by binomial sampling back to its starting size, and
+the cycle repeats. Beneficial mutations arise at a per-division rate with
+fitness effects drawn from a chosen model. Every genotype that ever arose is
+kept in an ancestry tree, from which the program reports genotype and clade
+frequencies over time, line-of-descent statistics, and a Muller matrix.
+.PP
+At least one
+.B \-\-output\-*
+option must be given.
+.SH GENERAL OPTIONS
+.TP
+.BR \-h ", " \-\-help
+Print usage and exit.
+.TP
+.BR \-v ", " \-\-verbose
+Print step-by-step details of the run to standard output.
+.TP
+.B \-\-debug
+Perform extra internal consistency checks (population size bookkeeping).
+.SH SIMULATION OPTIONS
+.TP
+.BR \-d ", " \-\-rng\-seed " \fIN\fR"
+Seed for the random number generator. 0 (the default) chooses a random seed
+and prints it, so any run can be reproduced later.
+.TP
+.BR \-r ", " \-\-replicates " \fIN\fR"
+Number of independent replicate populations (default 1). All replicates draw
+from one random stream, so a seed reproduces the whole set.
+.TP
+.BR \-p ", " \-\-initial\-population\-size " \fIN\fR"
+Number of cells at the start of the simulation (default 5E6).
+.TP
+.BR \-N ", " \-\-population\-size\-after\-transfer " \fIN\fR"
+Number of cells after each dilution (default 5E6).
+.TP
+.BR \-T ", " \-\-generations\-per\-transfer " \fIG\fR"
+Doublings per transfer (default 6.64, a 1:100 dilution). The dilution factor
+is 2^G.
+.TP
+.BR \-n ", " \-\-number\-of\-transfers " \fIN\fR"
+Number of transfers to simulate after burn-in (default 50).
+.TP
+.BR \-z ", " \-\-initial\-fitness " \fIW\fR"
+Fitness of the ancestral genotype (default 1.0).
+.TP
+.BR \-u ", " \-\-mutation\-rates " \fIRATE\fR"
+Beneficial mutation rate per cell division (default 1E-7). Give the option
+several times to define several categories of mutations; each must be matched
+by a
+.B \-s
+value.
+.TP
+.BR \-s ", " \-\-fitness\-effects " \fIS\fR"
+Fitness effect of a mutation in the corresponding category (default 0.1).
+Under the exponential model this is the mean.
+.TP
+.BR \-f ", " \-\-fitness\-effect\-model " \fIMODEL\fR"
+How fitness effects are drawn:
+.B u
+every mutation has exactly the effect given by
+.BR \-s ;
+.B e
+effects are exponentially distributed with that mean;
+.B o
+only one mutation per category can ever occur in a lineage (default u).
+.TP
+.BR \-m ", " \-\-multiplicative\-fitness
+Combine effects multiplicatively, fitness = f (1 + s), instead of additively,
+fitness = f + s.
+.TP
+.BR \-1 ", " \-\-first\-mutation\-fitness\-effects " \fIS\fR"
+Fix the fitness effects of the first, second, ... mutations in any lineage.
+Give the option once per mutation. These override
+.B \-s
+until a lineage has more mutations than values given.
+.TP
+.BI \-\-average\-fitness\-end\-condition " W"
+Stop a replicate once mean fitness reaches W (default 0, off).
+.SH MARKER DIVERGENCE OPTIONS
+.TP
+.BR \-k ", " \-\-marker\-states " \fIN\fR"
+Start with the population split equally into N subpopulations carrying
+different states of a neutral marker (default 0, off; only 2 is supported).
+.TP
+.BR \-x ", " \-\-max\-marker\-divergence\-ratio " \fIR\fR"
+.TQ
+.BR \-t ", " \-\-transfer\-interval\-to\-print " \fIN\fR"
+Accepted for compatibility but currently have no effect: the marker
+divergence stopping rule and ratio output were never re-implemented after the
+2011 rewrite.
+.SH OUTPUT OPTIONS
+All output files are tab-separated text written to the output folder.
+.TP
+.BR \-o ", " \-\-output\-folder " \fIDIR\fR"
+Directory for output files, created if needed (default the current
+directory).
+.TP
+.BR \-b ", " \-\-burn\-in " \fIN\fR"
+Perform N transfers before recording begins. These are in addition to
+.BR \-n .
+.TP
+.BR \-c ", " \-\-coarse\-graining " \fIN\fR"
+Record statistics only every N transfers (default 1).
+.TP
+.B \-\-output\-average\-fitness
+Write
+.IR average_fitness.tab :
+mean fitness per recorded transfer, one row per replicate.
+.TP
+.B \-\-output\-average\-mutations
+Write
+.I average_mutations.tab
+and
+.IR average_mutations_category_N.tab :
+mean number of mutations per cell, in total and per category.
+.TP
+.B \-\-output\-genotype\-frequencies
+Write
+.IR genotype_frequencies_MIN_REP.dat :
+frequency over time of every genotype that was ever at or above
+.BR \-\-minimum\-output\-frequency .
+.TP
+.B \-\-output\-clade\-frequencies
+Write
+.IR clade_frequencies_MIN_REP.dat :
+the same for clades (a genotype together with all its descendants). Header
+rows mark which clades lie on the line of descent to the final dominant
+genotype and give each founding mutation's fitness effect.
+.TP
+.BI \-\-minimum\-output\-frequency " F"
+Threshold for the two options above (default 0.01).
+.TP
+.B \-\-output\-diverged\-frequencies
+Write
+.IR mutation_divergence_depth_frequency_D.tab
+for D from 1 to
+.BR \-\-diverged\-mutation\-depth :
+the largest clade frequency at each transfer among clades diverged from the
+final dominant line of descent by at least D mutations.
+.TP
+.BI \-\-diverged\-mutation\-depth " N"
+Maximum D for the option above (default 10).
+.TP
+.B \-\-output\-longest\-sweep\-time
+Write
+.IR longest_sweep_time.tab :
+per replicate, the longest time in transfers for a mutation on the final line
+of descent to rise from at most 5% to at least 95% frequency.
+.TP
+.B \-\-output\-largest\-sweep\-size
+Not implemented; the program aborts if this is given.
+.TP
+.BI \-\-minimum\-sweep\-frequency\-difference " F"
+Accepted but unused (belongs to the unimplemented option above).
+.TP
+.B \-\-output\-muller
+Write
+.IR muller_matrix_REP.dat :
+a Muller matrix with
+.B \-\-muller\-resolution
+rows per recorded transfer. Cell values are genotype ids; see
+.I src/R
+and
+.I src/python
+for plotting scripts.
+.TP
+.BI \-\-muller\-resolution " N"
+Vertical resolution of the Muller matrix (default 200).
+.TP
+.B \-\-muller\-lod
+Give genotypes on the line of descent to the final dominant negative ids so
+they can be colored separately.
+.SH EXAMPLES
+Three replicates with daily 1:100 transfers for 500 days, recording mean
+fitness and Muller matrices:
+.PP
+.nf
+.RS
+bpopsim -r 3 -p 5E6 -N 5E6 -T 6.64 -u 1E-7 -s 0.1 -n 500 \\
+    -o output --output-average-fitness --output-muller
+.RE
+.fi
+.PP
+Two categories of beneficial mutation, exponentially distributed effects:
+.PP
+.nf
+.RS
+bpopsim -u 1E-7 -s 0.05 -u 1E-9 -s 0.3 -f e -n 200 \\
+    -o output --output-clade-frequencies
+.RE
+.fi
+.SH REPRODUCIBILITY
+Given the same seed, GSL version, and command line, output is identical on
+every platform. The seed used is always printed at the start of a run.
+.SH SEE ALSO
+The GNU Scientific Library manual, chapter "Random Number Generation".
+.SH AUTHORS
+Jeffrey E. Barrick and Austin G. Meyer, with contributions from James
+Dittmar and Daniel Deatherage. Barrick lab, The University of Texas at Austin
+(originally Michigan State University).
+.SH LICENSE
+GNU General Public License version 3 or later.
