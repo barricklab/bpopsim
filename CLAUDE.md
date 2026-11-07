@@ -21,59 +21,56 @@ work through it one phase at a time.
   genotype ancestry), `anyoption.{h,cpp}` (command-line parser, locally
   modified), `icsilog.{h,c}` (fast log lookup; compiled in but never called).
 - `src/c/bpopsim.1` man page (still the Xcode template, not filled in).
-- `src/c/bpopsim.xcodeproj/` hand-maintained Xcode project; superseded once
-  CMake lands (`cmake -G Xcode` regenerates one).
+- `CMakeLists.txt` build; `tests/` holds the CTest golden regression test
+  (`tests/CMakeLists.txt`, `tests/golden_test.cmake`, `tests/golden/`).
+- `binarydist.sh` builds a release tarball with GSL linked statically. On
+  macOS it uses the system Apple clang and builds GSL from source as a static
+  universal (arm64 + x86_64) archive into `binarydist_build/` (gitignored,
+  cached across runs), mirroring breseq's release script.
+- `environment.yml` conda environment with every build and run prerequisite.
 - Analysis helpers, out of scope for C++ work: `src/R/` (Muller plots,
   average fitness), `src/python/muller_plot.py`, `src/matlab/`,
   `src/mathematica/`, `src/perl/MarkerDivergence/` (marker divergence
   statistics, its own Module::Build project).
-- `bootstrap.sh`, `configure.ac`, `Makefile.am`, `aux_build/m4/` autotools
-  build. `binarydist.sh` builds a static universal macOS binary tarball.
+- An Xcode project is not checked in; generate one with
+  `cmake -S . -B build-xcode -G Xcode` when wanted.
 
 ## Build and run
 
 All build and run prerequisites come from a local conda environment defined
-in `environment.yml` (compiler, make, cmake, autotools, GSL). Create it
-once at `./env` (gitignored), then run commands inside it with `conda run`
-so nothing needs activating:
+in `environment.yml` (compiler, cmake, make, GSL). Create it once at
+`./env` (gitignored), then run commands inside it with `conda run` so nothing
+needs activating:
 
 ```
 conda env create -f environment.yml --prefix=$PWD/env
 
-conda run -p $PWD/env ./bootstrap.sh
-conda run -p $PWD/env sh -c './configure --with-gsl-prefix="$CONDA_PREFIX" \
-    CC="$CONDA_PREFIX/bin/clang" CXX="$CONDA_PREFIX/bin/clang++"'
-conda run -p $PWD/env make -j
-src/c/bpopsim/bpopsim -u 1E-7 -s 0.1 -n 50 -r 3 -o out \
+conda run -p $PWD/env cmake -S . -B build
+conda run -p $PWD/env cmake --build build --parallel
+conda run -p $PWD/env ctest --test-dir build --output-on-failure
+build/bpopsim -u 1E-7 -s 0.1 -n 50 -r 3 -o out \
     --output-average-fitness --output-muller
 ```
 
-Why the explicit flags: conda-forge's compiler packages no longer export
-`CC`/`CXX` on activation, so without them autoconf picks up Apple's
-`/usr/bin/gcc` and the GSL link check fails. `--with-gsl-prefix` is needed
-because this machine also has a stale x86_64 GSL 1.13 in `/usr/local` that
-`gsl.m4` finds first. The `sh -c` wrapper lets `$CONDA_PREFIX` expand inside
-`conda run`. The resulting binary carries an rpath into `env/lib`, so it
-runs without activating the env.
+CMake picks up the env's compiler shims (`cc`, `c++`) from PATH and finds
+the env's GSL through `find_package(GSL)`. The binary carries an rpath into
+`env/lib`, so it runs without activating the env. Build type defaults to
+Release. `-DBPOPSIM_STATIC_GSL=ON` links GSL statically (used by
+`binarydist.sh`).
 
 Unlike breseq, there is no separate runtime environment: GSL is the only
 runtime dependency and it is also a build dependency.
 
-If `./configure` or `Makefile` is missing, the bootstrap and configure steps
-have not been run in this checkout. After switching between toolchains, run
-`make distclean` first; otherwise `make` re-runs the old configure with its
-old arguments.
-
 At least one `--output-*` flag is required or the program prints usage and
-exits. `bpopsim --help` lists all options. There is no test target yet
-(`make test` is an empty rule in `Makefile.am`).
+exits. `bpopsim --help` lists all options.
 
-Regression oracle: `tests/golden/` holds the output of the fixed-seed run
-recorded in `tests/golden/COMMAND`. Rerun that command into a scratch
-directory and `diff -r` against `tests/golden/` after any change. Output must
-stay byte-identical unless the commit says otherwise and regenerates it.
-In zsh, pass the arguments as an array; an unquoted `$ARGS` string is passed
-as a single word and the program falls back to printing usage.
+Regression oracle: `ctest` runs `golden_regression`, which executes the
+fixed-seed command recorded in `tests/golden/COMMAND` and requires every
+output file to be byte-identical to `tests/golden/`. Run it after any change.
+Output must stay identical unless the commit says otherwise and regenerates
+the golden files. If running the command by hand in zsh, pass the arguments
+as an array; an unquoted `$ARGS` string is passed as a single word and the
+program falls back to printing usage.
 
 ## Architecture
 
@@ -125,7 +122,7 @@ as a single word and the program falls back to printing usage.
   headers (like `tree.hh`, and doctest for tests) are acceptable.
 - Seeded output should stay byte-identical across refactors. If a change is
   intentionally behavioral, say so in the commit message.
-- Once tests exist (roadmap Phase 2), run `ctest` before committing.
+- Run `ctest` before asking to commit.
 
 ## Known issues (fix via roadmap, not ad hoc)
 
@@ -138,6 +135,13 @@ as a single word and the program falls back to printing usage.
 - Seed is read with `from_string<int16_t>` into a `uint16_t`; the default
   `time(NULL) * getpid()` is truncated to 16 bits.
 - `chomp()` in `common.h` drops one character too many.
+- `CalculateSimilarity()` in `cPopulation.cc` is a non-void function with no
+  return statement (unreferenced dead code, `-Wreturn-type`).
+- `main()` declares `char* argv_new[argc]`, a variable-length array, which is
+  a Clang extension in C++ (`-Wvla-cxx-extension`).
+- The build currently emits about 60 warnings under `-Wall -Wextra`, mostly
+  `-Wignored-qualifiers` (`const` on by-value returns), `-Wsign-compare`,
+  and `-Wunused-parameter`. Phase 5 of the roadmap clears them.
 - `OutputParameters::burn_in` is `int32_t` but parsed as `uint32_t`.
 - Roughly a dozen `cPopulation` methods below the comment
   "Need to check output below here" are unreferenced, as is the

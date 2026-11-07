@@ -50,29 +50,34 @@ Everything later is measured against this.
       across two runs. `--output-largest-sweep-size` is excluded because it
       is `assert(false)`.
 
-## Phase 1: CMake build, remove autotools
+## Phase 1: CMake build, remove autotools (done 2026-11-07)
 
-- [ ] Top-level `CMakeLists.txt`:
-  - `project(bpopsim VERSION 0.1 LANGUAGES CXX)`, `CMAKE_CXX_STANDARD 17`,
-    extensions off.
-  - `find_package(GSL REQUIRED)`.
-  - `add_library(bpopsim_core STATIC ...)` from `cPopulation.cc`,
-    `cSubpopulation.cc`, `anyoption.cpp`; link `GSL::gsl GSL::gslcblas`.
-  - `add_executable(bpopsim src/c/bpopsim/main.cpp)` linking `bpopsim_core`.
-  - `-Wall -Wextra -Wpedantic` on our targets. Mark the vendored include
-    directory `SYSTEM` or add targeted `-Wno-*` so `tree.hh` and `anyoption`
-    do not drown real warnings.
-  - `install(TARGETS bpopsim)` and `install(FILES src/c/bpopsim.1 ...)`.
-  - `enable_testing()`, `add_subdirectory(tests)` (empty until Phase 2).
-- [ ] Delete: `configure.ac`, `Makefile.am`, `src/c/bpopsim/Makefile.am`,
+- [x] Top-level `CMakeLists.txt`: C++17, extensions off, Release default,
+      `find_package(GSL REQUIRED)`, `bpopsim_core` static library
+      (`cPopulation.cc`, `cSubpopulation.cc`, vendored `anyoption.cpp` and
+      `icsilog.c`), `bpopsim` executable, `-Wall -Wextra` on our code with
+      vendored sources compiled `-w`, install rules for the binary and man
+      page, `include(CTest)`. `BPOPSIM_STATIC_GSL` option for release builds.
+- [x] `tests/CMakeLists.txt` + `tests/golden_test.cmake`: CTest
+      `golden_regression` runs the command in `tests/golden/COMMAND` and
+      compares every file byte for byte, also failing on missing or extra
+      output files. (Pulled forward from Phase 2 because it is Phase 1's
+      verification.)
+- [x] Deleted `configure.ac`, `Makefile.am`, `src/c/bpopsim/Makefile.am`,
       `bootstrap.sh`, `aux_build/`, `src/c/bpopsim/compile`,
-      `src/c/bpopsim.xcodeproj/`.
-- [ ] Rewrite `binarydist.sh` around `cmake --build` + `cmake --install`
-      (or CPack), keeping the static universal macOS flags.
-- [ ] Trim autotools entries from `.gitignore`; add `build*/`.
-- [ ] Update the Build section of `CLAUDE.md` and `README`.
-- [ ] Verify: `cmake -B build && cmake --build build`, rerun the Phase 0
-      command, diff against `tests/golden/`.
+      `src/c/bpopsim.xcodeproj/`. Generate an Xcode project with
+      `cmake -G Xcode` when wanted.
+- [x] `binarydist.sh` rewritten around `cmake --build`, `ctest`,
+      `cmake --install` with static GSL. On macOS it follows breseq: system
+      Apple clang, GSL built from source (version from the `environment.yml`
+      pin) as a static universal arm64 + x86_64 archive in
+      `binarydist_build/`, deployment target 10.13. The tarball binary links
+      only `/usr/lib/libc++` and `libSystem`. Verified that both the arm64
+      and the x86_64 (under Rosetta) slices reproduce `tests/golden/`.
+- [x] `.gitignore` reduced to CMake, dist, Xcode-generated, Perl, editor
+      entries. `environment.yml` autotools block removed.
+- [x] `CLAUDE.md` build section updated. `README` is still empty (Phase 7).
+- [x] Verified: `ctest` golden regression passes with the CMake build.
 
 ## Phase 2: Test harness
 
@@ -90,10 +95,7 @@ Everything later is measured against this.
       == 1 / that`, `final_population_size_at_transfer`, category fractions
       sum to 1, mismatch of `-u`/`-s` counts is rejected. Until Phase 3 this
       needs a helper that builds an `AnyOption` from a `vector<string>` argv.
-- [ ] Regression test: `add_test` that runs `bpopsim` with the `COMMAND`
-      arguments into `${CMAKE_CURRENT_BINARY_DIR}/golden_out` and compares
-      each file with `cmake -E compare_files` against `tests/golden/`
-      (every file except `COMMAND`).
+- [x] Regression test: done in Phase 1 (`tests/golden_test.cmake`).
 - [ ] Add a second golden case in marker-divergence mode (`-k 2`) once the
       `by_color[0]` zero-length array in `TransferResampleDilution` is fixed.
 - [ ] `ctest --test-dir build --output-on-failure` is green.

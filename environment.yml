@@ -6,19 +6,10 @@ dependencies:
 # Compiler and build tools.
 #   => Should be compatible with any versions.
 #   => conda-forge's compiler packages no longer ship activation scripts that export CC/CXX.
-#      They install cc/c++/clang/clang++ shims into $CONDA_PREFIX/bin instead. Autotools
-#      must be told about them explicitly (see CLAUDE.md); CMake finds them on PATH.
+#      They install cc/c++/clang/clang++ shims into $CONDA_PREFIX/bin, which CMake finds on PATH.
   - cxx-compiler
-  - make
   - cmake
-  - ninja
-# Autotools: still needed until the CMake build replaces them (docs/MODERNIZATION.md Phase 1).
-# Remove this block when that phase lands.
-  - autoconf
-  - automake
-  - libtool
-  - pkg-config
-  - m4
+  - make
 
 # ---- Build and run ----
 # GSL is bpopsim's single external library and its only runtime dependency (dynamically linked,
