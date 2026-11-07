@@ -100,6 +100,13 @@ as a single word and the program falls back to printing usage.
 - `common.h`: string/number helpers (`split`, `join`, `from_string<>`,
   `to_string`), `create_path`, and the global `g_verbose`.
 
+## Working rules
+
+- **Do not commit without explicit OK from the user.** Make the changes,
+  report what changed, and wait. The user often edits the result or asks for
+  changes before anything is committed. Approval of a plan is not approval to
+  commit; ask again when the work is ready.
+
 ## Conventions and gotchas
 
 - GSL is the single permitted external dependency. It stays, because GSL
