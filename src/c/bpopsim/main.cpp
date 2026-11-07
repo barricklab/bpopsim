@@ -31,7 +31,7 @@ int bpopsim_default_action(int argc, char* argv[])
   if (!options.count("output-average-fitness") && !options.count("output-average-mutations") &&
       !options.count("output-clade-frequencies") && !options.count("output-genotype-frequencies") &&
       !options.count("output-diverged-frequencies") && !options.count("output-longest-sweep-time") &&
-      !options.count("output-muller")) {
+      !options.count("output-marker-frequencies") && !options.count("output-muller")) {
 
     options.AddUsage("");
     options.AddUsage("You must provide at least one output option.");
@@ -46,6 +46,20 @@ int bpopsim_default_action(int argc, char* argv[])
 
   try {
     simulation_parameters.Validate();
+
+    // Marker mode consistency checks.
+    if (marker_divergence.marker_states == 1) {
+      throw std::invalid_argument("--marker-states must be 0 (off) or at least 2.");
+    }
+    if (marker_divergence.marker_states == 0) {
+      if (output_parameters.output_marker_frequencies)
+        throw std::invalid_argument("--output-marker-frequencies requires --marker-states.");
+      if (marker_divergence.divergence_end_fraction != 0)
+        throw std::invalid_argument("--marker-divergence-end-fraction requires --marker-states.");
+    }
+    if (marker_divergence.divergence_end_fraction < 0 || marker_divergence.divergence_end_fraction > 1) {
+      throw std::invalid_argument("--marker-divergence-end-fraction must be between 0 (off) and 1.");
+    }
   } catch (const std::invalid_argument& e) {
     options.AddUsage("");
     options.AddUsage(e.what());
@@ -114,6 +128,10 @@ int bpopsim_default_action(int argc, char* argv[])
 
   if (options.count("output-longest-sweep-time")) {
     final_statistics.OutputLongestSweepTime();
+  }
+
+  if (options.count("output-marker-frequencies")) {
+    final_statistics.OutputMarkerFrequencies();
   }
 
   return 0;

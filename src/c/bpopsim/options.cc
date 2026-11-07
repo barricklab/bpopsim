@@ -41,10 +41,18 @@ namespace bpopsim {
     options.AddUsage("==== Marker Divergence Options ====");
     options.AddUsage("");
     options("marker-states,k",
-            "Begin with the initial population divided equally into this many subpopulations each with a different "
-            "state of a neutral genetic marker. Do not track genotypes. Only track the neutral marker state of each "
-            "subpopulation. Default (0=OFF).",
+            "Begin with the initial population divided equally into this many genotypes, each carrying a different "
+            "state of a neutral genetic marker that its descendants inherit. Each marker starts with "
+            "initial-population-size / N cells. Must be 0 (OFF) or at least 2.",
             0);
+    options("marker-divergence-end-fraction,x",
+            "End a replicate once the most common marker state makes up at least this fraction of the population "
+            "(0=OFF). Requires --marker-states.",
+            0);
+    options("output-marker-frequencies",
+            "Output the fraction of the population carrying each marker state at each recorded transfer to "
+            "'marker_frequencies.tab'. Requires --marker-states.",
+            NoArgument);
     options.AddUsage("");
     options.AddUsage("==== Statistical Output Files and Options ====");
     options.AddUsage("");
@@ -140,6 +148,7 @@ namespace bpopsim {
     p.output_diverged_frequencies = options.count("output-diverged-frequencies");
     p.minimum_output_frequency = from_string<double>(options["minimum-output-frequency"]);
     p.output_longest_sweep_time = options.count("output-longest-sweep-time");
+    p.output_marker_frequencies = options.count("output-marker-frequencies");
     p.verbose = options.count("verbose");
     p.debug = options.count("debug");
     return p;
@@ -149,6 +158,7 @@ namespace bpopsim {
   {
     MarkerDivergence p;
     p.marker_states = from_string<uint32_t>(options["marker-states"]);
+    p.divergence_end_fraction = from_string<double>(options["marker-divergence-end-fraction"]);
     return p;
   }
 

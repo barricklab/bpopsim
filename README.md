@@ -64,6 +64,8 @@ build/bpopsim -r 3 -p 5E6 -N 5E6 -T 6.64 -u 1E-7 -s 0.1 -n 500 \
 | `-f, --fitness-effect-model` | `u` fixed effect, `e` exponential with mean `-s`, `o` one mutation per category |
 | `-m, --multiplicative-fitness` | Fitness = f (1 + s) instead of f + s |
 | `-1, --first-mutation-fitness-effects` | Override the effects of the 1st, 2nd, ... mutations |
+| `-k, --marker-states` | Marker mode: start with N genotypes carrying different neutral marker states, each with 1/N of the population (0 = off, else at least 2) |
+| `-x, --marker-divergence-end-fraction` | Marker mode: end a replicate once one marker reaches this fraction of the population (0 = off) |
 | `-b, --burn-in` | Transfers to run before recording begins (in addition to `-n`) |
 | `-c, --coarse-graining` | Record every this many transfers |
 | `-o, --output-folder` | Where output files go |
@@ -83,6 +85,7 @@ All files are tab-separated text written to the output folder.
 | `--output-clade-frequencies` | `clade_frequencies_<min>_<rep>.dat` | Same for clades (a genotype plus all its descendants); header rows flag the line of descent and each mutation's fitness effect |
 | `--output-diverged-frequencies` | `mutation_divergence_depth_frequency_<d>.tab` | Largest clade frequency diverged by at least `d` mutations from the final dominant line of descent, up to `--diverged-mutation-depth` |
 | `--output-longest-sweep-time` | `longest_sweep_time.tab` | Longest time (transfers) for a mutation on the line of descent to go from at most 5% to at least 95% |
+| `--output-marker-frequencies` | `marker_frequencies.tab` | Marker mode only: fraction of the population carrying each marker state per transfer, one row per replicate and marker |
 | `--output-muller` | `muller_matrix_<rep>.dat` | Muller matrix, `--muller-resolution` rows per transfer, cell values are genotype ids (`--muller-lod` makes the line of descent negative) |
 
 Scripts for plotting these in R, Python, and MATLAB live under `src/R`,

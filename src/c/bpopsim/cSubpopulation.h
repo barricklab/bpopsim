@@ -56,7 +56,7 @@ namespace bpopsim {
 
   private:
     double m_number{0};
-    char m_marker{'n'};
+    uint32_t m_marker{0};  // neutral marker state inherited from the seeding genotype; 0 = none (marker mode off)
     tree<cGenotype>::iterator m_genotype;
 
   public:
@@ -70,13 +70,13 @@ namespace bpopsim {
     uint32_t GetNode_id() { return m_genotype->unique_node_id; }
     double GetNumber() const { return m_number; }
     double GetIntegralNumber() const { return floor(m_number); }
-    char GetMarker() const { return m_marker; }
+    uint32_t GetMarker() const { return m_marker; }
     uint32_t GetTotalMutationCount() { return m_genotype->total_mutation_count; }
     uint32_t GetMutationCountInCategory(size_t in_category) { return m_genotype->mutation_counts[in_category]; }
 
     void SetGenotype(tree<cGenotype>::iterator location) { m_genotype = location; }
     void SetNumber(const double in_number) { m_number = in_number; }
-    void SetMarker(const char in_marker) { m_marker = in_marker; }
+    void SetMarker(uint32_t in_marker) { m_marker = in_marker; }
     void Transfer(double success_prob, RandomGenerator& randomgenerator);
     virtual bool CreateDescendant(RandomGenerator& randomgenerator, cSubpopulation& ancestor,
                                   SimulationParameters& simulation_parameters, tree<cGenotype>& in_tree,

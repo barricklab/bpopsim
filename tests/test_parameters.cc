@@ -284,3 +284,25 @@ TEST_CASE("cGenotype::AddOneMutation applies the fitness-effect models")
     CHECK(child.unique_node_id == 1);
   }
 }
+
+TEST_CASE("marker-mode options parse into MarkerDivergence and OutputParameters")
+{
+  SUBCASE("defaults")
+  {
+    ParsedOptions p({});
+    MarkerDivergence md = ParseMarkerDivergence(p.options);
+    OutputParameters op = ParseOutputParameters(p.options);
+    CHECK(md.marker_states == 0);
+    CHECK(md.divergence_end_fraction == doctest::Approx(0));
+    CHECK_FALSE(op.output_marker_frequencies);
+  }
+  SUBCASE("given")
+  {
+    ParsedOptions p({"-k", "3", "-x", "0.95", "--output-marker-frequencies"});
+    MarkerDivergence md = ParseMarkerDivergence(p.options);
+    OutputParameters op = ParseOutputParameters(p.options);
+    CHECK(md.marker_states == 3);
+    CHECK(md.divergence_end_fraction == doctest::Approx(0.95));
+    CHECK(op.output_marker_frequencies);
+  }
+}

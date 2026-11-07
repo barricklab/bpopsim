@@ -257,3 +257,167 @@ TEST_CASE("genotype frequency output selects columns by genotype, not clade, fre
 
   std::filesystem::remove_all(dir);
 }
+
+// ---- Marker mode ----
+
+namespace {
+
+  MarkerDivergence Markers(uint32_t states, double end_fraction = 0)
+  {
+    MarkerDivergence md;
+    md.marker_states = states;
+    md.divergence_end_fraction = end_fraction;
+    return md;
+  }
+
+}  // namespace
+
+TEST_CASE("marker mode is off by default and records nothing")
+{
+  SimulationParameters sp = SmallPopulation(5);
+  RandomGenerator r(1);
+  cPopulation pop(sp, DebugOutput(), MarkerDivergence(), r, 1);
+  pop.RunSimulation();
+  CHECK(pop.replicate_statistics.marker_frequencies.empty());
+}
+
+TEST_CASE("marker mode seeds equal fractions and keeps them summing to one")
+{
+  for (uint32_t states : {2u, 3u, 5u}) {
+    CAPTURE(states);
+    SimulationParameters sp = SmallPopulation(8);
+    sp.initial_population_size = 1500;  // divisible by 2, 3 and 5
+    sp.initial_population_size_after_transfer = 1500;
+    sp.Finalize();
+    RandomGenerator r(11);
+    cPopulation pop(sp, DebugOutput(), Markers(states), r, 1);
+    pop.RunSimulation();
+
+    const vector<vector<double>>& mf = pop.replicate_statistics.marker_frequencies;
+    REQUIRE(mf.size() == pop.replicate_statistics.average_population_fitness.size());
+    REQUIRE(mf.front().size() == states);
+    for (double f : mf.front()) CHECK(f == doctest::Approx(1.0 / states));
+    for (const vector<double>& at_transfer : mf) {
+      REQUIRE(at_transfer.size() == states);
+      double sum = 0;
+      for (double f : at_transfer) {
+        CHECK(f >= 0.0);
+        CHECK(f <= 1.0);
+        sum += f;
+      }
+      CHECK(sum == doctest::Approx(1.0));
+    }
+  }
+}
+
+TEST_CASE("each marker fraction equals the clade frequency of its root genotype")
+{
+  SimulationParameters sp = SmallPopulation(10);
+  RandomGenerator r(99);
+  cPopulation pop(sp, DebugOutput(), Markers(2), r, 1);
+  pop.RunSimulation();
+
+  const cReplicateStatistics& s = pop.replicate_statistics;
+  REQUIRE(s.marker_frequencies.size() == s.clade_frequencies.size());
+  for (size_t t = 0; t < s.marker_frequencies.size(); ++t) {
+    GenotypeFrequencyMap clades = s.clade_frequencies[t];
+    // Roots are genotype ids 0 and 1, in marker order.
+    CHECK(s.marker_frequencies[t][0] == doctest::Approx(clades.GetFrequency(0)));
+    CHECK(s.marker_frequencies[t][1] == doctest::Approx(clades.GetFrequency(1)));
+  }
+}
+
+TEST_CASE("without mutations marker fractions start at one half and only drift")
+{
+  SimulationParameters sp = SmallPopulation(10);
+  sp.mutation_rates_per_division = {0.0};
+  sp.Finalize();
+  RandomGenerator r(5);
+  cPopulation pop(sp, OutputParameters(), Markers(2), r, 1);
+  pop.RunSimulation();
+
+  const vector<vector<double>>& mf = pop.replicate_statistics.marker_frequencies;
+  REQUIRE(mf.size() == 11);
+  CHECK(mf[0][0] == doctest::Approx(0.5));
+  CHECK(mf[0][1] == doctest::Approx(0.5));
+  for (const vector<double>& at_transfer : mf) {
+    CHECK(at_transfer[0] > 0.0);
+    CHECK(at_transfer[0] < 1.0);
+  }
+}
+
+TEST_CASE("the divergence end fraction stops a replicate once one marker dominates")
+{
+  // Strong selection in a small population so one marker's lineage sweeps.
+  SimulationParameters sp = SmallPopulation(400);
+  sp.mutation_rates_per_division = {5e-3};
+  sp.mutation_fitness_effects = {0.5};
+  sp.Finalize();
+  const double end_fraction = 0.9;
+
+  RandomGenerator r(2024);
+  cPopulation pop(sp, OutputParameters(), Markers(2, end_fraction), r, 1);
+  pop.RunSimulation();
+
+  const vector<vector<double>>& mf = pop.replicate_statistics.marker_frequencies;
+  REQUIRE(mf.size() >= 2);
+  CHECK(mf.size() < 401);  // ended early
+  auto largest = [](const vector<double>& v) { return std::max(v[0], v[1]); };
+  CHECK(largest(mf.back()) >= end_fraction);
+  for (size_t t = 0; t + 1 < mf.size(); ++t) CHECK(largest(mf[t]) < end_fraction);
+
+  // The same seed with the end fraction off runs the full length.
+  RandomGenerator r2(2024);
+  cPopulation full(sp, OutputParameters(), Markers(2, 0), r2, 1);
+  full.RunSimulation();
+  CHECK(full.replicate_statistics.marker_frequencies.size() == 401);
+}
+
+TEST_CASE("marker_frequencies.tab has one row per replicate and marker")
+{
+  SimulationParameters sp = SmallPopulation(6);
+  OutputParameters op;
+  std::filesystem::path dir = std::filesystem::temp_directory_path() / "bpopsim_test_marker_frequencies";
+  std::filesystem::remove_all(dir);
+  std::filesystem::create_directories(dir);
+  op.output_directory_name = dir.string();
+
+  cStatistics stats(op);
+  RandomGenerator r(3);
+  for (uint32_t replicate = 1; replicate <= 2; ++replicate) {
+    cPopulation pop(sp, op, Markers(3), r, replicate);
+    pop.RunSimulation();
+    stats.push_back(pop.replicate_statistics);
+  }
+  stats.OutputMarkerFrequencies();
+
+  ifstream in(dir / "marker_frequencies.tab");
+  REQUIRE(in.is_open());
+  string line;
+  REQUIRE(getline(in, line));
+  vector<string> header = split(line, "\t");
+  REQUIRE(header.size() == 2 + 7);  // replicate, marker, transfers 0..6
+  CHECK(header[0] == "replicate");
+  CHECK(header[1] == "marker");
+  CHECK(header[2] == "0");
+  CHECK(header.back() == "6");
+
+  int rows = 0;
+  while (getline(in, line)) {
+    vector<string> fields = split(line, "\t");
+    REQUIRE(fields.size() == header.size());
+    uint32_t replicate = from_string<uint32_t>(fields[0]);
+    uint32_t marker = from_string<uint32_t>(fields[1]);
+    REQUIRE(replicate >= 1);
+    REQUIRE(replicate <= 2);
+    REQUIRE(marker >= 1);
+    REQUIRE(marker <= 3);
+    for (size_t t = 0; t < 7; ++t) {
+      CHECK(from_string<double>(fields[2 + t]) ==
+            doctest::Approx(stats[replicate - 1].marker_frequencies[t][marker - 1]));
+    }
+    ++rows;
+  }
+  CHECK(rows == 2 * 3);
+  std::filesystem::remove_all(dir);
+}

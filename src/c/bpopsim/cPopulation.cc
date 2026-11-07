@@ -81,6 +81,13 @@ void cPopulation::RunSimulation()
       if ((simulation_parameters.average_fitness_end_condition != 0) &&
           (average_subpopulation_fitness >= simulation_parameters.average_fitness_end_condition))
         run_end_condition_met = true;
+
+      // Marker divergence end condition: the most common marker has reached the requested fraction.
+      if (marker_divergence.marker_states > 0 && marker_divergence.divergence_end_fraction > 0) {
+        vector<double> marker_frequencies = CalculateMarkerFrequencies();
+        double largest = *std::max_element(marker_frequencies.begin(), marker_frequencies.end());
+        if (largest >= marker_divergence.divergence_end_fraction) run_end_condition_met = true;
+      }
     }
   }
 
@@ -427,6 +434,47 @@ void cStatistics::OutputLongestSweepTime()
   output_file.close();
 }
 
+// Fraction of the population carrying each marker state at each recorded
+// transfer: one row per (replicate, marker), columns are transfers, NA where a
+// replicate ended early.
+void cStatistics::OutputMarkerFrequencies()
+{
+  ofstream output_file;
+  string output_file_name = output_directory_name + "/marker_frequencies.tab";
+  output_file.open(output_file_name.c_str(), ios::out);
+
+  cerr << "Output: " << output_file_name << '\n';
+
+  size_t max_transfers_printed = 0;
+  for (auto& replicate_statistics : *this) {
+    max_transfers_printed = std::max(replicate_statistics.marker_frequencies.size(), max_transfers_printed);
+  }
+
+  output_file << "replicate\tmarker";
+  for (size_t transfer = 0; transfer < max_transfers_printed; ++transfer) {
+    output_file << "\t" << (transfer * coarse_graining);
+  }
+  output_file << '\n';
+
+  for (size_t replicate = 0; replicate < this->size(); ++replicate) {
+    const vector<vector<double>>& marker_frequencies = (*this)[replicate].marker_frequencies;
+    if (marker_frequencies.empty()) continue;
+    size_t marker_states = marker_frequencies[0].size();
+
+    for (size_t marker = 0; marker < marker_states; ++marker) {
+      output_file << (replicate + 1) << "\t" << (marker + 1);
+      for (size_t transfer = 0; transfer < max_transfers_printed; ++transfer) {
+        if (transfer < marker_frequencies.size())
+          output_file << "\t" << marker_frequencies[transfer][marker];
+        else
+          output_file << "\t" << "NA";
+      }
+      output_file << '\n';
+    }
+  }
+  output_file.close();
+}
+
 void cPopulation::UpdateSubpopulationsForGrowthExactWithFractionalCells(double update_time)
 {
   current_population_size = 0;  // Update the population size.
@@ -581,42 +629,27 @@ void cPopulation::TransferResampleDilution()
   }
 }
 
+// Marker mode: one root genotype per marker state, each starting with an equal
+// share of the population. Markers are numbered 1..N and inherited by every
+// descendant, so the fraction carrying marker i equals the clade frequency of
+// root genotype i-1.
 void cPopulation::SeedPopulationWithMarkedGenotypes(uint32_t genetic_marker_states)
 {
-  // For now assumes...
-  assert(genetic_marker_states == 2);
+  assert(genetic_marker_states >= 2);
 
-  cGenotype r(simulation_parameters, unique_genotype_count++);
-  cGenotype w(simulation_parameters, unique_genotype_count++);
-  tree<cGenotype>::iterator top, red_side, white_side;
-  double starting_fitness = simulation_parameters.initial_fitness;
+  // Insert roots in order 1..N: tree::insert puts the new node before the
+  // given position, so insert at end() to keep marker i as the i-th root.
+  for (uint32_t marker = 1; marker <= genetic_marker_states; ++marker) {
+    cGenotype genotype(simulation_parameters, unique_genotype_count++);
+    genotype.fitness = simulation_parameters.initial_fitness;
+    tree<cGenotype>::iterator root = genotype_tree.insert(genotype_tree.end(), genotype);
 
-  // initialize object of cSubpopulation type
-  cSubpopulation red, white;
-
-  /*@agm The unique code and fitness is set. */
-
-  /*@jeb note that we increment genotype count here.
-   It should really happen in AddSubpopulation?
-   */
-
-  r.fitness = starting_fitness;
-  w.fitness = starting_fitness;
-
-  // Start building the tree
-  red_side = genotype_tree.insert(genotype_tree.begin(), r);
-  white_side = genotype_tree.insert(genotype_tree.begin(), w);
-
-  red.SetNumber(simulation_parameters.initial_population_size / genetic_marker_states);
-  red.SetGenotype(red_side);
-  red.SetMarker('r');
-
-  white.SetNumber(simulation_parameters.initial_population_size / genetic_marker_states);
-  white.SetGenotype(white_side);
-  white.SetMarker('w');
-
-  AddSubpopulation(red);
-  AddSubpopulation(white);
+    cSubpopulation subpopulation;
+    subpopulation.SetNumber(simulation_parameters.initial_population_size / genetic_marker_states);
+    subpopulation.SetGenotype(root);
+    subpopulation.SetMarker(marker);
+    AddSubpopulation(subpopulation);
+  }
 
   current_population_size = simulation_parameters.initial_population_size;
 }
@@ -639,7 +672,7 @@ void cPopulation::SeedPopulationWithOneGenotype()
   cSubpopulation begin_here;
   begin_here.SetNumber(simulation_parameters.initial_population_size);
   begin_here.SetGenotype(start_position);
-  begin_here.SetMarker('n');
+  begin_here.SetMarker(0);
   AddSubpopulation(begin_here);
 
   current_population_size = simulation_parameters.initial_population_size;
@@ -731,7 +764,7 @@ void cPopulation::MutateExactWithFractionalCells()
 
   if (success_adding) {
 
-    if (output_parameters.verbose) cout << "  Color: " << new_subpop.GetMarker() << '\n';
+    if (output_parameters.verbose) cout << "  Marker: " << new_subpop.GetMarker() << '\n';
     if (output_parameters.verbose) cout << "  New Fitness: " << new_subpop.GetFitness() << '\n';
 
     AddSubpopulation(new_subpop);
@@ -747,6 +780,18 @@ void cPopulation::MutateExactWithFractionalCells()
 }
 
 //////////  Methods for recording statistics //////////
+
+vector<double> cPopulation::CalculateMarkerFrequencies()
+{
+  vector<double> frequencies(marker_divergence.marker_states, 0.0);
+  for (auto& subpopulation : current_subpopulations) {
+    uint32_t marker = subpopulation.GetMarker();
+    assert(marker >= 1 && marker <= marker_divergence.marker_states);
+    frequencies[marker - 1] += subpopulation.GetNumber();
+  }
+  for (double& frequency : frequencies) frequency /= current_population_size;
+  return frequencies;
+}
 
 void cPopulation::RecordStatisticsAtTransfer()
 {
@@ -829,6 +874,14 @@ void cPopulation::RecordStatisticsAtTransfer()
   // Push to record
   replicate_statistics.genotype_frequencies.push_back(current_genotype_frequency_map);
   replicate_statistics.clade_frequencies.push_back(current_clade_frequency_map);
+
+  /////////////////////////////////////////
+  /// Statistic: marker_frequencies (marker mode only)
+  /////////////////////////////////////////
+
+  if (marker_divergence.marker_states > 0) {
+    replicate_statistics.marker_frequencies.push_back(CalculateMarkerFrequencies());
+  }
 }
 
 void cPopulation::RecordStatisticsAtEnd()

@@ -89,10 +89,33 @@ until a lineage has more mutations than values given.
 .BI \-\-average\-fitness\-end\-condition " W"
 Stop a replicate once mean fitness reaches W (default 0, off).
 .SH MARKER DIVERGENCE OPTIONS
+Marker mode models a population founded by N genotypes that differ only in a
+neutral marker (for example Ara+ and Ara- in the long-term evolution
+experiment). Every descendant inherits its founder's marker, so the marker
+fractions track which founding lineage is winning.
 .TP
 .BR \-k ", " \-\-marker\-states " \fIN\fR"
-Start with the population split equally into N subpopulations carrying
-different states of a neutral marker (default 0, off; only 2 is supported).
+Start with the population split equally into N genotypes, each carrying a
+different marker state and 1/N of the cells (default 0, off; otherwise at
+least 2). N larger than the population size leaves markers with less than
+one cell, which die at the first transfer.
+.TP
+.BR \-x ", " \-\-marker\-divergence\-end\-fraction " \fIF\fR"
+End a replicate once the most common marker state makes up at least F of
+the population (default 0, off). Requires
+.BR \-k .
+.TP
+.B \-\-output\-marker\-frequencies
+Write
+.IR marker_frequencies.tab :
+one row per replicate and marker state, with the fraction of the population
+carrying that marker at each recorded transfer. Requires
+.BR \-k .
+.PP
+In marker mode the ancestry tree has N root genotypes. The line-of-descent
+outputs
+.RB ( \-\-output\-diverged\-frequencies ", " \-\-output\-longest\-sweep\-time )
+follow only the first root and are not meaningful.
 .SH OUTPUT OPTIONS
 All output files are tab-separated text written to the output folder.
 .TP

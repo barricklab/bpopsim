@@ -116,7 +116,15 @@ program falls back to printing usage.
   next whole-cell event or the next mutation), `MutateExactWithFractionalCells()`
   (pick a parent subpopulation weighted by growth, spawn a child genotype),
   and `TransferResampleDilution()` (binomial dilution, cull extinct
-  genotypes). `RecordStatisticsAtTransfer()` fills `replicate_statistics`.
+  genotypes). `RecordStatisticsAtTransfer()` fills `replicate_statistics`,
+  including per-marker population fractions when marker mode (`-k`) is on;
+  `-x` ends a replicate once one marker reaches the given fraction.
+- Marker mode: `SeedPopulationWithMarkedGenotypes` creates one root genotype
+  per marker state (numbered 1..N, inherited by descendants via
+  `cSubpopulation::m_marker`; 0 means no marker). The fraction carrying
+  marker i equals the clade frequency of root genotype i-1, which a test
+  checks. `main` validates that `-k` is 0 or at least 2 and that `-x` and
+  `--output-marker-frequencies` are only used with `-k`.
 - `cSubpopulation` / `cGenotype` (`cSubpopulation.h`): a subpopulation is a
   cell count, a marker state, and an iterator into the genotype tree.
   `cGenotype::AddOneMutation()` applies the fitness-effect model
@@ -186,10 +194,10 @@ program falls back to printing usage.
 ## Known issues
 
 - `OutputParameters::burn_in` is `int32_t` but parsed as `uint32_t`.
-- Marker-divergence mode (`-k 2`) seeds two genotypes carrying markers
-  `'r'` and `'w'` and then runs an ordinary simulation. Nothing
-  marker-specific is reported; a divergence stopping rule and a marker-ratio
-  output would have to be written.
+- In marker mode the ancestry tree has one root per marker, but
+  `GenotypesFromAncestorToFinalDominant()` walks only the first root, so
+  `--output-diverged-frequencies` and `--output-longest-sweep-time` are not
+  meaningful there (documented in the man page).
 - Burn-in transfers (`-b`) are performed in addition to `-n`, not within it.
 
 ## Stashed work

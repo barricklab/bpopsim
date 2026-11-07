@@ -34,6 +34,9 @@ namespace bpopsim {
                                                            // certain depth (number of mutations) or more
     int32_t longest_sweep_time = 0;                        // for any mutation in the replicate; measured in transfers
 
+    vector<vector<double>> marker_frequencies;  // [recorded transfer][marker - 1]: fraction of the population
+                                                // carrying each neutral marker state (marker mode only)
+
     uint32_t total_mutations = 0;            // Number of mutations so far
     uint32_t total_subpopulations_lost = 0;  // Number of subpopulations that no longer exist
   };
@@ -49,6 +52,7 @@ namespace bpopsim {
     uint32_t diverged_mutation_depth = 10;
     bool output_diverged_frequencies = false;
     bool output_longest_sweep_time = false;
+    bool output_marker_frequencies = false;
     double minimum_output_frequency = 0.01;
     bool verbose = false;  // Print step-by-step details of the run (-v)
     bool debug = false;    // Perform extra consistency checks (--debug)
@@ -57,7 +61,8 @@ namespace bpopsim {
   // Options for marker-divergence mode (-k). Filled by ParseMarkerDivergence().
   struct MarkerDivergence
   {
-    uint32_t marker_states = 0;  // Number of neutral marker states (0 = off; 2 is the only supported value)
+    uint32_t marker_states = 0;          // Number of neutral marker states the population starts with (0 = off)
+    double divergence_end_fraction = 0;  // End a replicate once one marker reaches this fraction (0 = off)
   };
 
   // Statistics across all runs
@@ -73,6 +78,7 @@ namespace bpopsim {
     void OutputAveragePopulationMutationCounts();
     void OutputDivergedFrequenciesByDepth();
     void OutputLongestSweepTime();
+    void OutputMarkerFrequencies();
 
     string output_directory_name;
     uint32_t coarse_graining;  // Only used for calculating statistics and ignoring intermediate time points
@@ -279,6 +285,8 @@ namespace bpopsim {
     double CalculatePopulationSize();
     double CalculateMaximumSubpopulationFitness();
     double CalculateAverageSubpopulationFitness();
+    //! Fraction of the population carrying each marker state, index = marker - 1 (marker mode only)
+    vector<double> CalculateMarkerFrequencies();
 
     double AssignChildFrequency(const tree<cGenotype>::sibling_iterator& child_node, double parent_low,
                                 double parent_high, vector<cFrequencySlice>* child_freqs,

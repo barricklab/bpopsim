@@ -320,6 +320,17 @@ CI results from the first pushes:
       `--minimum-sweep-frequency-difference` and the inert marker-mode
       `-x`/`-t` options were removed outright (code, tests, man page).
 
+## After the roadmap
+
+- 2026-11-07: marker mode made useful. Markers are numbered `uint32_t`
+  states, `-k N` works for any N >= 2 (one root genotype per marker), new
+  `--output-marker-frequencies` writes `marker_frequencies.tab` (fraction of
+  the population per marker per transfer), new `-x /
+  --marker-divergence-end-fraction` ends a replicate once one marker reaches
+  the given fraction. `main` validates the combinations. Seven new tests,
+  including one that ties each marker fraction to the clade frequency of its
+  root genotype. Default mode untouched; golden identical.
+
 ## Verification at every phase
 
 ```
