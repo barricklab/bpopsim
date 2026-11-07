@@ -24,13 +24,12 @@
 #include <utility>
 #include <vector>
 
-// Vendored third-party headers. tree.hh has its own `using namespace std;` at
-// global scope, which is what lets the rest of this file and the headers that
-// include it use unqualified std names. Removing that (roadmap Phase 6) means
-// qualifying names here.
+// Vendored third-party headers (src/c/third_party, a SYSTEM include directory).
+// tree.hh and anyoption.h both have `using namespace std;` at global scope, which
+// is what lets this file and the headers that include it use unqualified std
+// names. That goes away only when anyoption is replaced (see docs/MODERNIZATION.md).
 #include "tree.hh"
 #include "tree_util.hh"
-#include "icsilog.h"
 #include "random.h"
 
 //!< Split a string on a delimiter into a vector

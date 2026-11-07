@@ -234,23 +234,42 @@ Bugs found and fixed along the way (none affect golden output):
   only) `by_color` array, which Phase 6 removes with the rest of marker mode
   cleanup.
 
-## Phase 6: Dead code and vendored code
+## Phase 6: Dead code and vendored code (done 2026-11-07)
 
-- [ ] Delete `icsilog.c/.h`, `fix_flags`, the `CONVERT-TREE` subcommand, and
-      the unreferenced `cPopulation` methods: `PrintSingleFitness`,
+- [x] Deleted `icsilog.{c,h}` (never called), the `CONVERT-TREE` subcommand
+      and its 170-line commented-out predecessor in `main.cpp` (now 120
+      lines), and every unreferenced `cPopulation` method:
+      `DisplayParameters`, `DisplaySimulationSummary`,
+      `TransferResampleExactlyOne`, `GenotypesFromAncestorToFinalSweep`,
+      `Last_Sweep` (both overloads), `PrintSingleFitness`,
       `ConvertExternalData`, `PrintWinningFitness`, `PrintExpectationValue`,
       `PrintOut_RedWhiteOnly`, `PrintFrequenciesToScreen*`,
-      `CalculateSimilarity`, `TimeToSweep`, `PrintFreqsQuick`,
-      `PrintUniqueGenotypes`, and the duplicate `Last_Sweep` /
-      `GenotypesFromAncestorToFinalDominant(float)` overloads. Remove the
-      large commented-out blocks.
-- [ ] Move `tree.hh`, `tree_util.hh`, `anyoption.*` to
-      `src/c/third_party/`; exclude from clang-tidy and clang-format. Patch
-      the single `using namespace std;` line in `tree.hh` so it stops leaking.
+      `CalculateSimilarity`, `CountMutipleDivergedSubpops`, `TimeToSweep`,
+      `GenotypesFromAncestorToFinalDominant(float)`, `PrintFreqsQuick`,
+      `PrintTree`, `PrintUniqueGenotypes`; plus the `total_cell_equivalents`
+      and `red_white_ratios` members and the stale comment blocks that
+      referenced them. `cPopulation.cc` went from 1690 to 1150 lines.
+- [x] Marker-divergence remnants: `by_color[0]` (a zero-length array written
+      to in marker mode), the `e_colors` enum, and the commented-out
+      divergence-stop block removed. `MarkerDivergence::marker_states` is now
+      `uint32_t` (it was a `bool` assigned from `-k`, so `-k 2` asserted). `-k 2`
+      now runs; `-x` and `-t` have no effect because the stopping rule and
+      ratio output were never re-implemented. Documented in CLAUDE.md.
+- [x] `tree.hh`, `tree_util.hh`, `anyoption.{h,cpp}` moved to
+      `src/c/third_party/`, added as a `SYSTEM` include directory (their
+      deprecation warnings no longer appear), excluded via
+      `.clang-format-ignore`. `LANGUAGES C` dropped from the project.
+- [ ] Not done: patching `tree.hh`'s `using namespace std;`. `anyoption.h`
+      has the same directive, so patching `tree.hh` alone changes nothing,
+      and qualifying ~1,500 lines of vendored parser is not worth it. This
+      falls out of the optional `AnyOption` replacement below.
 - [ ] Optional: replace `AnyOption` (1,200 lines, `char*` buffers, macro
-      constants) with a ~200-line `OptionParser` supporting long/short names,
-      flags, repeatable options, and usage text. Only after Phase 3, so the
-      swap touches `options.cc` and `main.cpp` alone.
+      constants, the `ioctl` width probe) with a ~200-line `OptionParser`
+      supporting long/short names, flags, repeatable options, and usage text.
+      Since Phase 3 the swap touches only `options.cc`, `main.cpp`, and the
+      `ParsedOptions` test helper. Then qualify `std` names in our headers and
+      drop the global using-directives.
+- [x] Build warning-free; 44/44 tests; golden identical.
 
 ## Phase 7: Quality of life
 

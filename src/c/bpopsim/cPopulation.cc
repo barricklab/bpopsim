@@ -20,11 +20,6 @@ cPopulation::cPopulation(SimulationParameters in_simulation_parameters, const Ou
 , log_2(log(2))
 {}
 
-void cPopulation::DisplayParameters()
-{
-  simulation_parameters.Print();
-}
-
 void cPopulation::RunSimulation()
 {
   // Initialize the population
@@ -72,26 +67,11 @@ void cPopulation::RunSimulation()
 
     if (current_population_size >= simulation_parameters.final_population_size_at_transfer) {
 
-      // @JEB: Would need to re-implement mutation accumulation version
-      /*
-        if( print_single_fit )
-          TransferResampleExactlyOne();
-        else {
-      */
       TransferResampleDilution();
       CullSubpopulationsThatDidNotEstablish();
-      //  }
 
       // Record statistics after the transfer
       RecordStatisticsAtTransfer();
-
-      /* @JEB: Would need to re-implement...
-
-        if( print_single_fit && !use_mute_num) {
-          population.PrintSingleFitness(options["output-folder"]);
-          //cout << "Population size: " << population.GetPopulationSize() << endl;
-        }
-       */
 
       cerr << "    Replicate: " << setw(3) << replicate << "  Transfer: " << setw(4) << num_completed_transfers;
       cerr << "  Fitness: " << setw(7) << fixed << setprecision(4) << average_subpopulation_fitness
@@ -105,14 +85,6 @@ void cPopulation::RunSimulation()
   }
 
   RecordStatisticsAtEnd();
-}
-
-void cPopulation::DisplaySimulationSummary() const
-{
-  cerr << "Total mutations: " << replicate_statistics.total_mutations << '\n';
-  cerr << "Total subpopulations lost: " << replicate_statistics.total_subpopulations_lost << '\n';
-  cerr << "Transfers: " << num_completed_transfers << '\n';
-  cerr << "Maximum Fitness: " << maximum_subpopulation_fitness << '\n';
 }
 
 //@agm I comandeered this function to print stuff out in the manner I see fit
@@ -593,7 +565,6 @@ void cPopulation::ProcessCellDivisionTimeStepExactWithFractionalCells()
 void cPopulation::TransferResampleDilution()
 {
   // When it is time for a transfer, resample population
-  double by_color[0];
 
   // @JEB: Move to main simulation loop
   num_completed_transfers++;
@@ -605,11 +576,6 @@ void cPopulation::TransferResampleDilution()
 
     // Perform binomial sampling
     it->Transfer(simulation_parameters.binomial_sampling_transfer_probability, rng);
-
-    if (it->GetMarker() == 'r')
-      by_color[RED] += it->GetNumber();
-    else if (it->GetMarker() == 'w')
-      by_color[WHITE] += it->GetNumber();
 
     //@agm This section is to delete new mutations from the tree that do not get passed,
     //     it also deletes subpopulations from the list that have zero population
@@ -635,77 +601,6 @@ void cPopulation::TransferResampleDilution()
     double calculated_population_size = CalculatePopulationSize();
     assert(calculated_population_size == current_population_size);
   }
-
-  /*
-   if (output_parameters.verbose) cout << "Colors: " << by_color[RED] << " / " << by_color[WHITE] << endl;
-   SetRatio( (double) by_color[RED]/by_color[WHITE] );
-
-   // Checks for stopping early if in marker divergence mode
-   if (g_ro_only) {
-
-   // One color was lost -- bail
-   if ( (by_color[RED] == 0) || (by_color[WHITE] == 0) ) {
-   run_end_condition_met = true;
-   }
-
-   // We have the minimum number of transfers to be printed and have diverged sufficiently -- bail
-   else {
-   if  ( (GetRatio() > GetMaxDivergenceFactor()) ||
-   (GetRatio() < 1/GetMaxDivergenceFactor()) )
-   {
-   if (output_parameters.verbose) cout << "DIVERGENCE CONDITION MET" << endl;
-   run_end_condition_met = true;
-   }
-   }
-   }
-   */
-
-  // cout << "Pop size: " << m_population_size << endl;
-}
-
-// Currently this only works for picking one cell after resample
-void cPopulation::TransferResampleExactlyOne()
-{
-  long int starting_size(0), random_number;
-  // vector<cSubpopulation> temp_populations;
-
-  num_completed_transfers++;    // @JEB should be moved to main loop
-  current_population_size = 0;  // recalculate population size
-
-  for (auto& current_subpopulation : current_subpopulations) {
-    starting_size += current_subpopulation.GetNumber();
-  }
-
-  // cout << "Population size before dilution: " << starting_size << endl;
-
-  // for (uint32_t num_cells = 0; num_cells < m_initial_population_size_per_transfer; num_cells++) {
-  random_number = rng.UniformInt(starting_size);
-
-  vector<cSubpopulation>::iterator it;
-  for (it = current_subpopulations.begin(); it != current_subpopulations.end(); ++it) {
-    if (random_number < it->GetNumber()) {
-      it->SetNumber(1);
-
-      // Erase empty subpopulations
-      ++it;
-      while (it != current_subpopulations.end()) {
-        current_subpopulations.erase(it);
-      }
-      break;
-    } else {
-      random_number -= it->GetNumber();
-      current_subpopulations.erase(it);
-      --it;
-    }
-  }
-
-  //}
-
-  /*for (vector<cSubpopulation>::iterator it = m_current_subpopulations.begin(); it!=m_current_subpopulations.end();
-   ++it) { cout << it->GetNumber() << " " << it->GetNode_id() << " " << it->GetFitness() << endl;
-   }*/
-
-  current_population_size = 1;
 }
 
 void cPopulation::SeedPopulationWithMarkedGenotypes(uint32_t genetic_marker_states)
@@ -1116,7 +1011,7 @@ double cPopulation::CalculateAverageSubpopulationFitness()
 // Helper function for producing Muller plot matrix
 // Assigns bounds to child genotype centered (and equally dividing) parent genotype slice.
 double cPopulation::AssignChildFrequency(const tree<cGenotype>::sibling_iterator& this_node, double in_low,
-                                         double in_high, vector<cFrequencySlice>* child_freqs,
+                                         double /*in_high*/, vector<cFrequencySlice>* child_freqs,
                                          GenotypeFrequencyMap& frequencies,
                                          int depth)  // current depth in tree, defaults to zero
 {
@@ -1174,41 +1069,6 @@ double cPopulation::AssignChildFrequency(const tree<cGenotype>::sibling_iterator
 tree<cGenotype>::iterator cPopulation::FindGenotypeInTreeByID(uint32_t id)
 {
   return genotype_id_map_into_tree[id];
-}
-
-// Collect a set of all genotypes from the ancestor to the final clade that achieved 100% of the population
-
-set<uint32_t> cPopulation::GenotypesFromAncestorToFinalSweep()
-{
-
-  // Go through current clades and find the one
-  set<uint32_t> genotype_set;
-
-  // Find the most derived clade that is 100% of the population
-  tree<cGenotype>::iterator final_sweeping_clade = genotype_tree.end();
-
-  uint32_t final_dominant_clade_id = 0;
-
-  const double epsilon = 0.000001;
-  for (auto& it : replicate_statistics.clade_frequencies.back()) {
-
-    // If the clade frequency is 1.0, then we keep the highest genotype ID (guaranteed to be latest)
-    if (abs(it.second - 1.0) < epsilon) {
-      final_dominant_clade_id = max(final_dominant_clade_id, it.first);
-    }
-  }
-
-  // Find it in the tree
-  tree<cGenotype>::iterator it = FindGenotypeInTreeByID(final_dominant_clade_id);
-
-  // Now add it and all parents to the set
-
-  while (it != nullptr) {
-    genotype_set.insert(it->unique_node_id);
-    it = tree<bpopsim::cGenotype, std::allocator<tree_node_<bpopsim::cGenotype>>>::parent(it);
-  }
-
-  return genotype_set;
 }
 
 // Start at ancestor and take the greatest clade at each step
@@ -1287,404 +1147,4 @@ vector<uint32_t> cPopulation::GenotypesAboveThreshold(float threshold)
   vector<uint32_t> genotype_list(genotype_set.begin(), genotype_set.end());
   sort(genotype_list.begin(), genotype_list.end());
   return genotype_list;
-}
-
-uint32_t cPopulation::Last_Sweep(float threshold)
-{
-
-  for (auto time = replicate_statistics.clade_frequencies.rbegin();
-       time != replicate_statistics.clade_frequencies.rend(); ++time) {
-    for (auto node = time->rbegin(); node != time->rend(); ++node) {
-      if (node->second >= threshold) return node->first;
-    }
-  }
-
-  cout << "Nothing met threshold." << '\n';
-
-  return 0;
-}
-
-// Used for MA?
-
-void cPopulation::PrintSingleFitness(const string& output_folder)
-{
-  string output_file;
-  ofstream output_handle;
-
-  float single_fitness;
-
-  output_file = output_folder + "/SingleFitness.dat";
-  output_handle.open(output_file.c_str(), ios_base::app);
-
-  if (current_subpopulations.size() == 1) {
-    for (auto& current_subpopulation : current_subpopulations) {
-      single_fitness = current_subpopulation.GetFitness();
-    }
-  } else {
-    cerr << "There is more than one population remaining... there is a bug." << '\n';
-    abort();
-  }
-
-  output_handle << single_fitness << "\n";
-  // if( single_fitness != 1 )
-  // cout << "Fitness: " << single_fitness << "\n";
-  output_handle.close();
-}
-
-void cPopulation::ConvertExternalData(const string& input_file)
-{
-
-  /*
-  fstream input_handle;
-  input_handle.open(input_file.c_str(), fstream::in);
-  assert(input_handle.is_open());
-
-  char char_line[1000];
-
-  uint32_t num_nodes = 1;
-
-  while(!input_handle.getline(char_line,1000).eof()) {
-    string line(char_line);
-    vector<string> line_pieces(split(line, " ")), preformat_tree(split(line_pieces[0], ","));
-
-    tree<cGenotype>::iterator top, next;
-
-    if( num_nodes == 1 ) {
-      cGenotype origin;
-      origin.unique_node_id = num_nodes;
-      origin.name = preformat_tree[0];
-      origin.fitness = 1;
-      origin.mut_num = 0;
-
-      top = genotype_tree.begin();
-      genotype_tree.insert(top, origin);
-
-      replicate_statistics.clade_frequencies.resize(line_pieces.size()-1);
-
-      for(uint32_t this_time = 0; this_time < replicate_statistics.clade_frequencies.size(); ++this_time) {
-        if( from_string<double>(line_pieces[this_time+1]) != 0 ) {
-          cGenotypeFrequency temp_time;
-          temp_time.unique_node_id = num_nodes;
-          temp_time.name = *(preformat_tree.end()-1);
-          temp_time.m_frequency = from_string<double>(line_pieces[this_time+1]);
-          replicate_statistics.clade_frequencies[this_time].push_back(temp_time);
-        }
-      }
-    }
-    else {
-      for(tree<cGenotype>::iterator this_node = genotype_tree.begin(); this_node != genotype_tree.end(); ++this_node) {
-        if( *(preformat_tree.end()-2) == (*this_node).name ) {
-          cSubpopulation new_child;
-          cGenotype child;
-          child.name = *(preformat_tree.end()-1);
-          child.unique_node_id = num_nodes;
-          child.fitness = 1;
-          child.mut_num = num_nodes;
-          new_child.AddToTree(genotype_tree, this_node, child);
-
-          for(uint32_t this_time = 0; this_time < replicate_statistics.clade_frequencies.size(); ++this_time) {
-            if( from_string<double>(line_pieces[this_time+1]) != 0 ) {
-              cGenotypeFrequency temp_time;
-              temp_time.unique_node_id = num_nodes;
-              temp_time.name = *(preformat_tree.end()-1);
-              temp_time.m_frequency = from_string<double>(line_pieces[this_time+1]);
-              replicate_statistics.clade_frequencies[this_time].push_back(temp_time);
-            }
-          }
-        }
-      }
-    }
-
-    num_nodes++;
-  }
-
-  input_handle.close();
-  */
-  /*for(tree<cGenotype>::iterator this_node = m_tree.begin(); this_node != m_tree.end(); ++this_node) {
-    cout << this_node->unique_node_id << " " << this_node->name << endl;
-  }*/
-
-  // PrintFreqsQuick();
-  // PrintTree();
-}
-
-// Utilities Section
-
-// The goal here is the find the fitness of the winning line of descent at every time point
-// This allows comparison eventualy winners and losers style
-
-void cPopulation::PrintWinningFitness(const string& output_folder, uint32_t run_number)
-{
-
-  /*
-    vector<uint32_t> all_sweep_ids(GenotypesFromAncestorToFinalDominant(1.0));
-
-    ofstream output_handle;
-    string output_file;
-
-    output_file.append(output_folder);
-    output_file.append("/Winning_Fitness_");
-    output_file.append(to_string(run_number));
-    output_file.append(".dat");
-    output_handle.open(output_file.c_str(),ios_base::app);
-
-    uint32_t count(0);
-
-    //First I iterate over the frequency vector per time
-    for (vector< vector<cGenotypeFrequency> >::iterator this_time = m_frequencies.begin(); this_time <
-    m_frequencies.end(); ++this_time) { if( count % m_coarse_graining == 0 ) {
-
-        for (uint32_t a_node=0; a_node<all_sweep_ids.size(); a_node++) {
-
-          //Here we grab the frequency of each of the nodes that are known to have swept by the END of the simulation
-          double frequency( GenotypeFrequency( *this_time, all_sweep_ids[a_node]) );
-
-          //On the first node that has zero frequency,
-          //Find the fitness in the tree of the one that came immediately before it
-          if( frequency == 0 ) {
-            for (tree<cGenotype>::iterator it = m_tree.begin(); it!=m_tree.end(); it++) {
-              if( it->unique_node_id == all_sweep_ids[a_node-1] )
-                 output_handle << it->fitness << "\t";
-
-            }
-            //After finding the youngest one at this time point in the winning line...
-            //Go to the next time point
-            break;
-          }
-        }
-      }
-      count++;
-    }
-
-    output_handle.close();
-   */
-}
-
-void cPopulation::PrintExpectationValue(const string& output_folder)
-{
-  /*
-  //Print everything out
-  ofstream output_handle;
-  string output_file;
-
-  output_file.append(output_folder);
-  output_file.append("/ExpectationVal.dat");
-  output_handle.open(output_file.c_str(),ios_base::app);
-
-  double calculated_mutant_population_freq(0);
-
-  for ( vector<cGenotypeFrequency>::iterator it = m_frequencies[m_frequencies.size()-1].begin();
-  it!=m_frequencies[m_frequencies.size()-1].end(); ++it) { if( it->unique_node_id != 0 ) {
-      calculated_mutant_population_freq += it->m_frequency;
-    }
-  }
-
-  cout << calculated_mutant_population_freq << endl;
-  */
-}
-
-void cPopulation::PrintOut_RedWhiteOnly(const string& output_folder, vector<vector<double>>* red_white_ratios,
-                                        uint32_t transfer_interval_to_print)
-{
-  // Will print out only red and white
-  ofstream output_handle;
-  string output_file;
-
-  output_file = output_folder + "_Gfreqs_RO.dat";
-
-  output_handle.open(output_file.c_str(), ios_base::app);
-
-  uint32_t largest_replicate(0);
-  // find largest replicate
-  for (uint32_t replicate = 0; replicate < (*red_white_ratios).size(); replicate++) {
-    if ((*red_white_ratios)[replicate].size() > largest_replicate) largest_replicate = replicate;
-  }
-
-  output_handle << "transfer";
-  for (uint32_t replicate = 0; replicate < (*red_white_ratios).size(); replicate++) {
-    output_handle << "\t" << replicate;
-  }
-
-  output_handle << '\n';
-
-  for (uint32_t time = 0; time < (*red_white_ratios)[largest_replicate].size(); time++) {
-    output_handle << time * transfer_interval_to_print;
-    for (auto& replicate : *red_white_ratios) {
-      if (time >= replicate.size())
-        output_handle << "\t";
-      else
-        output_handle << "\t" << log(replicate[time]);
-    }
-    output_handle << '\n';
-  }
-}
-
-void cPopulation::PrintFrequenciesToScreen_RedWhiteOnly(const string& output_folder)
-{
-  ;
-}
-
-//@agm This function determines the maximum difference in genotype frequency between a mutation
-//     and its predecessor if they got above the threshold passed to the threshold function below
-
-double cPopulation::CalculateSimilarity(const string& output_folder)
-{
-
-  /*
-  vector<uint32_t> all_sweep_ids(GenotypesFromAncestorToFinalDominant(.99));
-
-  ofstream output_handle;
-  string output_file;
-
-  vector<float> max_diff(all_sweep_ids.size(), 0);
-  float current_diff;
-  double num_below_threshold(0);
-
-  uint32_t i=0;
-
-  for (uint32_t a_node=0; a_node<all_sweep_ids.size(); a_node++) {
-    uint32_t time = 0;
-    for ( vector<cGenotypeFrequency>::iterator it = run_statistics.clade_frequencies[i].begin();
-  it!=run_statistics.clade_frequencies[i].end(); ++it) {
-
-      //This conditional is to coarse-grain the sampling to every 75 transfers (~500 generations)
-      //and to make sure there is a value in the vector at that position
-      //another way to think about it is this conditional is checking to make sure that
-      //a particular mutation has arisen in time before comparing it to something.
-
-      if ( time% output_parameters.coarse_graining == 0 ) {
-        current_diff = fabs(GenotypeFrequency(*this_time, all_sweep_ids[a_node]) - GenotypeFrequency(*this_time,
-  all_sweep_ids[a_node+1])); if( max_diff[i] < current_diff ) max_diff[i] = current_diff;
-      }
-      time++;
-    }
-    i++;
-  }
-
-  output_file = output_folder + "/" + "SweepClumpiness.dat";
-  output_handle.open(output_file.c_str(), ios_base::app);
-
-  uint32_t num_simultaneous(1);
-
-  for (int i = 0; i<max_diff.size()-1; i++) {
-    if( max_diff[i] <= .1 ) num_simultaneous++;
-    else {
-      output_handle << num_simultaneous << endl;
-      num_simultaneous = 1;
-    }
-  }
-
-  output_handle.close();
-
-  output_file = output_folder + "/" + "SignificantParallelMutations.dat";
-  output_handle.open(output_file.c_str(), ios_base::app);
-
-  for (int i = 0; i<max_diff.size()-1; i++) {
-    cout << endl << i << " " << max_diff[i] << endl;
-    output_handle << max_diff[i] << endl;
-    if( max_diff[i] <= .1 ) num_below_threshold++;
-  }
-
-  output_handle.close();
-  return num_below_threshold;
-   */
-}
-
-void cPopulation::TimeToSweep(const string& output_folder)
-{
-
-  /*
-  vector<uint32_t> all_sweep_ids(GenotypesFromAncestorToFinalDominant(.98));
-
-  ofstream output_handle;
-  string output_file;
-
-  vector<uint32_t> time_to_sweep(all_sweep_ids.size(), 0);
-
-  uint32_t i=0;
-
-  for (uint32_t a_node=0; a_node<all_sweep_ids.size(); a_node++) {
-    uint32_t time = 0;
-    for (vector< vector<cGenotypeFrequency> >::iterator this_time = m_frequencies.begin(); this_time <
-m_frequencies.end(); ++this_time) {
-
-      //This conditional is to coarse-grain the sampling to every 75 transfers (~500 generations)
-      //and to make sure there is a value in the vector at that position
-      //another way to think about it is this conditional is checking to make sure that
-      //a particular mutation has arisen in time before comparing it to something.
-
-      double frequency( GenotypeFrequency(*this_time, all_sweep_ids[a_node]) );
-
-      if ( time%m_coarse_graining == 0 && frequency != 1 && frequency > .01) {
-        time_to_sweep[a_node]+=3;
-      }
-      time++;
-    }
-    i++;
-  }
-
-  //@agm this should output exactly the same thing to file as it does to screen
-  //     the virtue of this format is that it is human readable
-  output_file.append(output_folder);
-  output_file.append("/");
-  output_file.append("TimeToSweep.dat");
-  output_handle.open(output_file.c_str(),ios_base::app);
-
-  for (vector<uint32_t>::iterator it_node = time_to_sweep.begin(); it_node != time_to_sweep.end(); it_node++) {
-    if( (*it_node) != 0 ) {
-      cout << (*it_node) << endl;
-      output_handle << (*it_node) << endl;
-    }
-  }
-}
-
-vector<uint32_t> cPopulation::GenotypesFromAncestorToFinalDominant(float threshold) {
-
-  uint32_t youngest_sweep(Last_Sweep(threshold));
-
-  vector<uint32_t> all_sweep_ids;
-
-  for (tree<cGenotype>::iterator it = m_tree.begin(); it!=m_tree.end(); it++) {
-    if( it->unique_node_id == youngest_sweep ) {
-      while (it != NULL) {
-        all_sweep_ids.push_back(it->unique_node_id);
-        it = m_tree.parent(it);
-      }
-      break;
-    }
-  }
-
-  sort(all_sweep_ids.begin(), all_sweep_ids.end());
-
-  return all_sweep_ids;
-}
-
-uint32_t cPopulation::Last_Sweep(float threshold) {
-
-  for( vector< vector<cGenotypeFrequency> >::reverse_iterator time = m_frequencies.rbegin(); time <
-m_frequencies.rend(); ++time ) { for( vector<cGenotypeFrequency>::reverse_iterator node = time->rbegin(); node <
-time->rend(); ++node) { if( node->m_frequency >= threshold ) return node->unique_node_id;
-    }
-  }
-
-  cout << "Nothing met threshold." << endl;
-
-  return 0;
-   */
-}
-
-////////// THINGS WE DONT REALLY NEED BELOW
-
-void cPopulation::PrintFreqsQuick()
-{
-  uint32_t time_keeper(0);
-
-  for (auto& clade_frequencie : replicate_statistics.clade_frequencies) {
-    time_keeper++;
-    cout << "Time: " << time_keeper << '\n';
-    for (auto& this_genotype : clade_frequencie) {
-      cout << this_genotype.first << " " << this_genotype.second << '\n';
-    }
-    cout << '\n' << '\n';
-  }
 }

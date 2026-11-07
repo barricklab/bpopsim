@@ -14,13 +14,15 @@ work through it one phase at a time.
 
 ## Repository layout
 
-- `src/c/bpopsim/` C++ core. Our code: `main.cpp`, `cPopulation.{h,cc}`,
-  `cSubpopulation.{h,cc}`, `options.{h,cc}` (the command-line option table,
-  shared by `main` and the tests), `common.h`.
-- Vendored third-party code in the same directory, not ours to restyle:
-  `tree.hh` / `tree_util.hh` (Kasper Peeters' STL-like n-ary tree, holds the
-  genotype ancestry), `anyoption.{h,cpp}` (command-line parser, locally
-  modified), `icsilog.{h,c}` (fast log lookup; compiled in but never called).
+- `src/c/bpopsim/` C++ core, all ours: `main.cpp`, `cPopulation.{h,cc}`,
+  `cSubpopulation.{h,cc}`, `options.{h,cc}` (the command-line option table
+  and the `Parse*` functions, shared by `main` and the tests),
+  `random.{h,cc}` (the GSL wrapper), `common.h` (string helpers).
+- `src/c/third_party/` vendored code, built as a `SYSTEM` include directory
+  and excluded from clang-format/clang-tidy: `tree.hh` / `tree_util.hh`
+  (Kasper Peeters' STL-like n-ary tree, holds the genotype ancestry) and
+  `anyoption.{h,cpp}` (command-line parser, locally modified; see the
+  `init()` and `word_wrap()` fixes noted in `docs/MODERNIZATION.md`).
 - `src/c/bpopsim.1` man page (still the Xcode template, not filled in).
 - `CMakeLists.txt` build. `tests/` holds the doctest unit tests
   (`test_*.cc`, one `TEST_CASE` per CTest entry), the vendored doctest in
@@ -146,10 +148,8 @@ program falls back to printing usage.
   headers (like `tree.hh`, and doctest for tests) are acceptable.
 - Seeded output should stay byte-identical across refactors. If a change is
   intentionally behavioral, say so in the commit message.
-- Run `ctest` before asking to commit. Live code must stay warning-free
-  under `-Wall -Wextra`. The remaining warnings in `cPopulation.cc` are all
-  in the unreferenced methods below "Need to check output below here" that
-  Phase 6 deletes, plus `-Wdeprecated-*` noise from vendored `tree.hh`.
+- Run `ctest` before asking to commit. The build is warning-free under
+  `-Wall -Wextra` and must stay that way.
 - Style is enforced by `.clang-format` (run
   `conda run -p $PWD/env clang-format -i <files>` on our sources only; vendored
   files are listed in `.clang-format-ignore`). `.clang-tidy` holds the check
@@ -157,7 +157,9 @@ program falls back to printing usage.
   `conda run -p $PWD/env clang-tidy -p build src/c/bpopsim/<file>`.
 - `common.h` helpers are at global scope because the vendored `anyoption.h`
   uses `split()` and `to_string()`. Unqualified `std` names compile only
-  because vendored `tree.hh` has a global `using namespace std;`.
+  because vendored `tree.hh` and `anyoption.h` each have a global
+  `using namespace std;`. Qualifying our own code is deferred until
+  `AnyOption` is replaced (roadmap Phase 6, optional item).
 - When stdin is not a terminal, `AnyOption` uses an 80-column width for usage
   text. It used to read uninitialized memory there and could hang; see the
   note in `docs/MODERNIZATION.md` Phase 5 before touching `init()` or
@@ -169,17 +171,12 @@ program falls back to printing usage.
 - `GenotypesAboveThreshold()` reads `clade_frequencies` instead of
   `genotype_frequencies` (copy-paste), so the genotype frequency file
   selects columns by clade frequency. Fixing this changes output.
-- `TransferResampleDilution()` declares `double by_color[0]` and writes to
-  it when markers are `'r'`/`'w'` (marker-divergence mode only).
-- `CalculateSimilarity()` in `cPopulation.cc` is a non-void function with no
-  return statement (unreferenced dead code slated for removal in Phase 6).
 - `OutputParameters::burn_in` is `int32_t` but parsed as `uint32_t`.
-- Roughly a dozen `cPopulation` methods below the comment
-  "Need to check output below here" are unreferenced, as is the
-  `CONVERT-TREE` subcommand in `main.cpp`.
-- `MarkerDivergence::marker_states` is a `bool` assigned from `-k`'s integer,
-  so marker mode (`-k 2`) passes `1` to `SeedPopulationWithMarkedGenotypes`,
-  which asserts it equals 2. Marker-divergence mode is currently unusable.
+- Marker-divergence mode (`-k 2`) seeds two genotypes carrying markers
+  `'r'` and `'w'` and then runs an ordinary simulation. The divergence
+  stopping rule (`-x`) and the red/white ratio output (`-t`) were never
+  re-implemented after the 2011 rewrite and their code was removed in
+  Phase 6, so those two options currently have no effect.
 - Burn-in transfers (`-b`) are performed in addition to `-n`, not within it.
 
 ## Uncommitted work

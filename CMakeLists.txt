@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.15)
 project(bpopsim
   VERSION 0.1
   DESCRIPTION "Simulator of asexual population evolution under serial transfer"
-  LANGUAGES C CXX
+  LANGUAGES CXX
 )
 
 set(CMAKE_CXX_STANDARD 17)
@@ -41,6 +41,7 @@ if(BPOPSIM_STATIC_GSL)
 endif()
 
 set(BPOPSIM_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/c/bpopsim")
+set(BPOPSIM_THIRD_PARTY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/c/third_party")
 
 # Core simulation code as a library so tests can link against it without main().
 add_library(bpopsim_core STATIC
@@ -48,21 +49,18 @@ add_library(bpopsim_core STATIC
   "${BPOPSIM_SRC_DIR}/cSubpopulation.cc"
   "${BPOPSIM_SRC_DIR}/options.cc"
   "${BPOPSIM_SRC_DIR}/random.cc"
-  # Vendored third-party sources (not ours to restyle)
-  "${BPOPSIM_SRC_DIR}/anyoption.cpp"
-  "${BPOPSIM_SRC_DIR}/icsilog.c"
+  # Vendored third-party source (tree.hh and tree_util.hh are header-only)
+  "${BPOPSIM_THIRD_PARTY_DIR}/anyoption.cpp"
 )
 target_include_directories(bpopsim_core PUBLIC "${BPOPSIM_SRC_DIR}")
+# SYSTEM so warnings inside the vendored headers are not reported against our code.
+target_include_directories(bpopsim_core SYSTEM PUBLIC "${BPOPSIM_THIRD_PARTY_DIR}")
 target_link_libraries(bpopsim_core PUBLIC GSL::gsl GSL::gslcblas)
 target_compile_options(bpopsim_core PRIVATE
   $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang,GNU>:-Wall -Wextra>
 )
-# Silence warnings inside vendored sources only.
-set_source_files_properties(
-  "${BPOPSIM_SRC_DIR}/anyoption.cpp"
-  "${BPOPSIM_SRC_DIR}/icsilog.c"
-  PROPERTIES COMPILE_OPTIONS "-w"
-)
+# Silence warnings inside the vendored source file only.
+set_source_files_properties("${BPOPSIM_THIRD_PARTY_DIR}/anyoption.cpp" PROPERTIES COMPILE_OPTIONS "-w")
 
 add_executable(bpopsim "${BPOPSIM_SRC_DIR}/main.cpp")
 target_link_libraries(bpopsim PRIVATE bpopsim_core)

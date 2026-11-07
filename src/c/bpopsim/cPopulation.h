@@ -36,7 +36,6 @@ namespace bpopsim {
 
     uint32_t total_mutations = 0;            // Number of mutations so far
     uint32_t total_subpopulations_lost = 0;  // Number of subpopulations that no longer exist
-    vector<vector<double>> red_white_ratios;
   };
 
   // Options controlling what is recorded and written, plus run-time switches.
@@ -59,7 +58,7 @@ namespace bpopsim {
   // Options for marker-divergence mode (-k). Filled by ParseMarkerDivergence().
   struct MarkerDivergence
   {
-    bool marker_states = false;
+    uint32_t marker_states = 0;  // Number of neutral marker states (0 = off; 2 is the only supported value)
     double max_divergence_factor = 100;
     double transfer_interval_to_print = 1;
   };
@@ -208,8 +207,6 @@ namespace bpopsim {
     uint32_t existing_genotype_count{0};  // only the current number of genotypes in existence
     double maximum_subpopulation_fitness;
 
-    // Total number of cell equivalents in population
-    uint32_t total_cell_equivalents;    // @JEB: possibly not used
     double current_population_size{0};  // Current population size in terms of whole cells
 
     // New subpopulations that arose this transfer. Allows culling subpopulations did not survive a transfer.
@@ -237,32 +234,13 @@ namespace bpopsim {
     // DESTRUCTOR
     virtual ~cPopulation() = default;
 
-    void DisplayParameters();
     void RunSimulation();
-    void DisplaySimulationSummary() const;
 
     void OutputCladeFrequencies();
     void OutputGenotypeFrequencies();
     void OutputMullerMatrix(uint32_t frequency_resolution, bool line_of_descent_separate);
 
-    /// ---> Need to check output below here
-
-    void PrintUniqueGenotypes(const string& output_folder, vector<vector<uint32_t>>* number_of_unique_genotypes);
-    void PrintExpectationValue(const string& output_folder);
-    void PrintOut_RedWhiteOnly(const string& output_folder, vector<vector<double>>* red_white_ratios,
-                               uint32_t transfer_interval_to_print);
-    void PrintFrequenciesToScreen(string output_folder);
-    void PrintFrequenciesToScreen_RedWhiteOnly(const string& output_folder);
-    void PrintSingleFitness(const string& out_folder);
-    void PrintWinningFitness(const string& out_folder, uint32_t on_run);
-
   private:
-    enum e_colors
-    {
-      RED = 0,
-      WHITE = 1,
-    };
-
     //!!! Private Simulation Helper Methods
 
     //! Move time forward by this increment, growing all subpopulations
@@ -278,9 +256,8 @@ namespace bpopsim {
     }
     void ProcessCellDivisionTimeStepExactWithFractionalCells();
 
-    //! Population transfer methods
+    //! Population transfer: binomial dilution of every subpopulation
     void TransferResampleDilution();
-    void TransferResampleExactlyOne();
 
     //! Methods for initializing the population
     void SeedPopulationWithMarkedGenotypes(uint32_t genetic_markers);
@@ -309,30 +286,14 @@ namespace bpopsim {
                                 double parent_high, vector<cFrequencySlice>* child_freqs,
                                 GenotypeFrequencyMap& frequencies, int depth = 0);
 
-    // Prints out the tree using bracket notation.
-    void PrintTree()
-    {
-      kptree::print_tree_bracketed(genotype_tree);
-      cout << '\n';
-    }
+    //!!! Tree queries used by the output methods
 
-    //!!! Data Analysis Methods
-
-    void ConvertExternalData(const string& input_file);
-
-    uint32_t Last_Sweep(float threshold);
     tree<cGenotype>::iterator FindGenotypeInTreeByID(uint32_t id);
-    set<uint32_t> GenotypesFromAncestorToFinalSweep();
+    //! Genotype ids from the ancestor down the line of descent to the final dominant genotype
     set<uint32_t> GenotypesFromAncestorToFinalDominant();
+    //! Ids of genotypes / clades that were ever at or above the threshold frequency
     vector<uint32_t> GenotypesAboveThreshold(float threshold);
     vector<uint32_t> CladesAboveThreshold(float threshold);
-
-    double CalculateSimilarity(const string& output_folder);
-    double CountMutipleDivergedSubpops();
-    void TimeToSweep(const string& output_folder);
-
-    // Functions we don't really need
-    void PrintFreqsQuick();
   };
 
 }  // namespace bpopsim

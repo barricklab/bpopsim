@@ -1,6 +1,6 @@
 # Run from the repo root after configuring:
 #   conda run -p $PWD/env run-clang-tidy -p build src/c/bpopsim/cPopulation.cc ...
-# Vendored files (anyoption.*, tree.hh, tree_util.hh, icsilog.*) are excluded by
+# Vendored files under src/c/third_party and tests/third_party are excluded by
 # HeaderFilterRegex and by not listing them on the command line.
 ---
 Checks: >
