@@ -4,6 +4,11 @@
 #include "random.h"
 
 #include <cmath>
+#include <filesystem>
+#include <fstream>
+#include <map>
+#include <set>
+#include <string>
 #include <vector>
 
 using namespace std;
@@ -161,4 +166,94 @@ TEST_CASE("coarse graining records every Nth transfer")
 
   // Records at transfers 0, 5, 10.
   CHECK(pop.replicate_statistics.average_population_fitness.size() == 3);
+}
+
+namespace {
+
+  // Parse a frequency table written by OutputGenotypeFrequencies/OutputCladeFrequencies:
+  // header "transfer\t<prefix>_<id>..." then one row per transfer. Returns id -> max frequency.
+  map<uint32_t, double> ReadMaxFrequencyPerColumn(const string& path, const string& prefix)
+  {
+    ifstream in(path);
+    REQUIRE(in.is_open());
+    string line;
+    vector<uint32_t> ids;
+    while (getline(in, line)) {
+      if (line.rfind("transfer", 0) == 0) {
+        for (const string& field : split(line, "\t")) {
+          if (field.rfind(prefix, 0) == 0) ids.push_back(from_string<uint32_t>(field.substr(prefix.size())));
+        }
+        break;
+      }
+    }
+    map<uint32_t, double> max_frequency;
+    for (uint32_t id : ids) max_frequency[id] = 0;
+    while (getline(in, line)) {
+      vector<string> fields = split(line, "\t");
+      REQUIRE(fields.size() == ids.size() + 1);
+      for (size_t i = 0; i < ids.size(); ++i) {
+        max_frequency[ids[i]] = std::max(max_frequency[ids[i]], from_string<double>(fields[i + 1]));
+      }
+    }
+    return max_frequency;
+  }
+
+}  // namespace
+
+TEST_CASE("genotype frequency output selects columns by genotype, not clade, frequency")
+{
+  // Long enough, with a high mutation rate, that ancestors fall below the
+  // threshold while their clades sweep: exactly the case where selecting by
+  // clade frequency would add spurious columns.
+  SimulationParameters sp = SmallPopulation(40);
+  sp.mutation_rates_per_division = {5e-3};
+  sp.Finalize();
+
+  OutputParameters op;
+  op.minimum_output_frequency = 0.05;
+  std::filesystem::path dir = std::filesystem::temp_directory_path() / "bpopsim_test_genotype_columns";
+  std::filesystem::remove_all(dir);
+  std::filesystem::create_directories(dir);
+  op.output_directory_name = dir.string();
+
+  RandomGenerator r(777);
+  cPopulation pop(sp, op, MarkerDivergence(), r, 1);
+  pop.RunSimulation();
+  pop.OutputGenotypeFrequencies();
+  pop.OutputCladeFrequencies();
+
+  // Expected column set: every genotype whose own frequency ever reached the threshold.
+  set<uint32_t> expected;
+  for (const GenotypeFrequencyMap& gf : pop.replicate_statistics.genotype_frequencies) {
+    for (const auto& kv : gf) {
+      if (kv.second >= op.minimum_output_frequency) expected.insert(kv.first);
+    }
+  }
+  // And the clade-selected set, which must be a strict superset for this test to be meaningful.
+  set<uint32_t> clade_selected;
+  for (const GenotypeFrequencyMap& cf : pop.replicate_statistics.clade_frequencies) {
+    for (const auto& kv : cf) {
+      if (kv.second >= op.minimum_output_frequency) clade_selected.insert(kv.first);
+    }
+  }
+  REQUIRE(!expected.empty());
+  REQUIRE(clade_selected.size() > expected.size());
+
+  map<uint32_t, double> written =
+      ReadMaxFrequencyPerColumn((dir / "genotype_frequencies_0.0500_1.dat").string(), "genotype_");
+  set<uint32_t> written_ids;
+  for (const auto& kv : written) {
+    written_ids.insert(kv.first);
+    CHECK(kv.second >= op.minimum_output_frequency);  // no column that never met the threshold
+  }
+  CHECK(written_ids == expected);
+
+  // The clade file keeps selecting by clade frequency.
+  map<uint32_t, double> clade_written =
+      ReadMaxFrequencyPerColumn((dir / "clade_frequencies_0.050000_1.dat").string(), "clade_");
+  set<uint32_t> clade_written_ids;
+  for (const auto& kv : clade_written) clade_written_ids.insert(kv.first);
+  CHECK(clade_written_ids == clade_selected);
+
+  std::filesystem::remove_all(dir);
 }

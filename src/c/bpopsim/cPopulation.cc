@@ -1110,11 +1110,9 @@ vector<uint32_t> cPopulation::GenotypesAboveThreshold(float threshold)
 
   set<uint32_t> genotype_set;
 
-  for (uint32_t transfer = 0; transfer < replicate_statistics.genotype_frequencies.size(); transfer++) {
-    GenotypeFrequencyMap& transfer_genotype_frequencies = replicate_statistics.clade_frequencies[transfer];
-
-    for (auto& transfer_genotype_frequencie : transfer_genotype_frequencies) {
-      if (transfer_genotype_frequencie.second >= threshold) genotype_set.insert(transfer_genotype_frequencie.first);
+  for (auto& transfer_genotype_frequencies : replicate_statistics.genotype_frequencies) {
+    for (auto& id_and_frequency : transfer_genotype_frequencies) {
+      if (id_and_frequency.second >= threshold) genotype_set.insert(id_and_frequency.first);
     }
   }
 

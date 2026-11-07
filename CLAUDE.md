@@ -176,10 +176,6 @@ program falls back to printing usage.
 
 ## Known issues
 
-- `GenotypesAboveThreshold()` reads `clade_frequencies` instead of
-  `genotype_frequencies`, so the genotype frequency file selects its columns
-  by clade frequency. Fixing this changes output and requires regenerating
-  `tests/golden/`.
 - `OutputParameters::burn_in` is `int32_t` but parsed as `uint32_t`.
 - Marker-divergence mode (`-k 2`) seeds two genotypes carrying markers
   `'r'` and `'w'` and then runs an ordinary simulation. Nothing

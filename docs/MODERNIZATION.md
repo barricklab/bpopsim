@@ -299,10 +299,12 @@ CI results from the first pushes:
       Installed by `cmake --install` and included in `binarydist.sh` tarballs
       along with `README.md` and `COPYING`.
 - [ ] Remove the "Known issues" and "Uncommitted work" sections of
-      `CLAUDE.md` as they are resolved. Still open: `GenotypesAboveThreshold`
-      reading clade frequencies (an intentional output change when fixed),
-      `burn_in` parsed unsigned, and the stashed `vector<vector<double>>`
-      work. The never-implemented `--output-largest-sweep-size` and
+      `CLAUDE.md` as they are resolved. Still open: `burn_in` parsed unsigned,
+      and the stashed `vector<vector<double>>` work.
+      `GenotypesAboveThreshold` reading `clade_frequencies` is fixed; since
+      clade frequency bounds genotype frequency from above the bug could only
+      add columns, and in the golden run it added none, so `tests/golden/`
+      is unchanged. A test now runs a case where the two sets differ. The never-implemented `--output-largest-sweep-size` and
       `--minimum-sweep-frequency-difference` and the inert marker-mode
       `-x`/`-t` options were removed outright (code, tests, man page).
 
