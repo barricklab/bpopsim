@@ -146,7 +146,22 @@ program falls back to printing usage.
   headers (like `tree.hh`, and doctest for tests) are acceptable.
 - Seeded output should stay byte-identical across refactors. If a change is
   intentionally behavioral, say so in the commit message.
-- Run `ctest` before asking to commit.
+- Run `ctest` before asking to commit. Live code must stay warning-free
+  under `-Wall -Wextra`. The remaining warnings in `cPopulation.cc` are all
+  in the unreferenced methods below "Need to check output below here" that
+  Phase 6 deletes, plus `-Wdeprecated-*` noise from vendored `tree.hh`.
+- Style is enforced by `.clang-format` (run
+  `conda run -p $PWD/env clang-format -i <files>` on our sources only; vendored
+  files are listed in `.clang-format-ignore`). `.clang-tidy` holds the check
+  set used for the modernization; run it per file with
+  `conda run -p $PWD/env clang-tidy -p build src/c/bpopsim/<file>`.
+- `common.h` helpers are at global scope because the vendored `anyoption.h`
+  uses `split()` and `to_string()`. Unqualified `std` names compile only
+  because vendored `tree.hh` has a global `using namespace std;`.
+- When stdin is not a terminal, `AnyOption` uses an 80-column width for usage
+  text. It used to read uninitialized memory there and could hang; see the
+  note in `docs/MODERNIZATION.md` Phase 5 before touching `init()` or
+  `word_wrap()`.
 
 ## Known issues (fix via roadmap, not ad hoc)
 
@@ -157,12 +172,7 @@ program falls back to printing usage.
 - `TransferResampleDilution()` declares `double by_color[0]` and writes to
   it when markers are `'r'`/`'w'` (marker-divergence mode only).
 - `CalculateSimilarity()` in `cPopulation.cc` is a non-void function with no
-  return statement (unreferenced dead code, `-Wreturn-type`).
-- `main()` declares `char* argv_new[argc]`, a variable-length array, which is
-  a Clang extension in C++ (`-Wvla-cxx-extension`).
-- The build currently emits about 60 warnings under `-Wall -Wextra`, mostly
-  `-Wignored-qualifiers` (`const` on by-value returns), `-Wsign-compare`,
-  and `-Wunused-parameter`. Phase 5 of the roadmap clears them.
+  return statement (unreferenced dead code slated for removal in Phase 6).
 - `OutputParameters::burn_in` is `int32_t` but parsed as `uint32_t`.
 - Roughly a dozen `cPopulation` methods below the comment
   "Need to check output below here" are unreferenced, as is the

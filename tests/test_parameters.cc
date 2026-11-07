@@ -14,24 +14,25 @@ using namespace bpopsim;
 
 namespace {
 
-// Build an AnyOption exactly as main() does and parse the given arguments.
-struct ParsedOptions {
-  explicit ParsedOptions(const vector<string>& args)
-    : options("test")
+  // Build an AnyOption exactly as main() does and parse the given arguments.
+  struct ParsedOptions
   {
-    argv_storage.push_back("bpopsim");
-    for (const string& a : args) argv_storage.push_back(a);
-    for (string& a : argv_storage) argv.push_back(const_cast<char*>(a.c_str()));
-    DefineBpopsimOptions(options);
-    options.processCommandArgs(static_cast<int>(argv.size()), argv.data());
-  }
+    explicit ParsedOptions(const vector<string>& args)
+    : options("test")
+    {
+      argv_storage.push_back("bpopsim");
+      for (const string& a : args) argv_storage.push_back(a);
+      for (string& a : argv_storage) argv.push_back(const_cast<char*>(a.c_str()));
+      DefineBpopsimOptions(options);
+      options.processCommandArgs(static_cast<int>(argv.size()), argv.data());
+    }
 
-  vector<string> argv_storage;
-  vector<char*> argv;
-  AnyOption options;
-};
+    vector<string> argv_storage;
+    vector<char*> argv;
+    AnyOption options;
+  };
 
-} // namespace
+}  // namespace
 
 // ---- Direct construction (no command line) ----
 
@@ -149,9 +150,8 @@ TEST_CASE("ParseSimulationParameters with no arguments equals the defaults")
 
 TEST_CASE("ParseSimulationParameters reads repeated -u/-s and the model flags")
 {
-  ParsedOptions p({"-T", "4", "-N", "1000", "-p", "500",
-                   "-u", "1E-7", "-u", "3E-7", "-s", "0.1", "-s", "0.2",
-                   "-m", "-f", "e", "-1", "0.05", "-1", "0.02", "-n", "12"});
+  ParsedOptions p({"-T", "4",   "-N", "1000", "-p", "500", "-u",   "1E-7", "-u",   "3E-7", "-s", "0.1",
+                   "-s", "0.2", "-m", "-f",   "e",  "-1",  "0.05", "-1",   "0.02", "-n",   "12"});
   SimulationParameters sp = ParseSimulationParameters(p.options);
 
   CHECK(sp.maximum_number_of_transfers == 12);
@@ -179,10 +179,26 @@ TEST_CASE("ParseSimulationParameters with mismatched -u/-s fails Validate")
 
 TEST_CASE("ParseOutputParameters and ParseMarkerDivergence read their options")
 {
-  ParsedOptions p({"-o", "out_dir", "-c", "5", "-b", "3", "--diverged-mutation-depth", "4",
-                   "--minimum-output-frequency", "0.05", "--output-diverged-frequencies",
-                   "--output-longest-sweep-time", "-v", "--debug",
-                   "-k", "2", "-x", "50", "-t", "7"});
+  ParsedOptions p({"-o",
+                   "out_dir",
+                   "-c",
+                   "5",
+                   "-b",
+                   "3",
+                   "--diverged-mutation-depth",
+                   "4",
+                   "--minimum-output-frequency",
+                   "0.05",
+                   "--output-diverged-frequencies",
+                   "--output-longest-sweep-time",
+                   "-v",
+                   "--debug",
+                   "-k",
+                   "2",
+                   "-x",
+                   "50",
+                   "-t",
+                   "7"});
   OutputParameters op = ParseOutputParameters(p.options);
   CHECK(op.output_directory_name == "out_dir");
   CHECK(op.coarse_graining == 5);

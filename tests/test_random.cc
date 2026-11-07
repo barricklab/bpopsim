@@ -17,20 +17,18 @@ TEST_CASE("seed 12345 reproduces the recorded GSL 2.8 reference sequence")
 {
   RandomGenerator r(12345);
 
-  const double uniform[5] = {
-    0.14079645113088191, 0.85450767702423036, 0.54992264253087342,
-    0.48398289736360312, 0.38425721903331578 };
+  const double uniform[5] = {0.14079645113088191, 0.85450767702423036, 0.54992264253087342, 0.48398289736360312,
+                             0.38425721903331578};
   for (double expected : uniform) CHECK(r.Uniform() == expected);
 
-  const unsigned long uniform_int[5] = { 639, 150, 918, 329, 136 };
+  const unsigned long uniform_int[5] = {639, 150, 918, 329, 136};
   for (unsigned long expected : uniform_int) CHECK(r.UniformInt(1000) == expected);
 
-  const unsigned int binomial[5] = { 1053, 1037, 1058, 981, 1001 };
+  const unsigned int binomial[5] = {1053, 1037, 1058, 981, 1001};
   for (unsigned int expected : binomial) CHECK(r.Binomial(0.01, 100000) == expected);
 
-  const double exponential[5] = {
-    2110867.7712601679, 4196622.1659500916, 1151990.7039830985,
-    983597.8671306466, 421827.07449777075 };
+  const double exponential[5] = {2110867.7712601679, 4196622.1659500916, 1151990.7039830985, 983597.8671306466,
+                                 421827.07449777075};
   for (double expected : exponential) CHECK(r.Exponential(1e6) == expected);
 }
 
@@ -54,7 +52,8 @@ TEST_CASE("Seed() restarts the stream")
 {
   RandomGenerator r(7);
   double first = r.Uniform();
-  r.Uniform(); r.Uniform();
+  r.Uniform();
+  r.Uniform();
   r.Seed(7);
   CHECK(r.Uniform() == first);
   CHECK(r.seed() == 7);

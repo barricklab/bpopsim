@@ -1,0 +1,34 @@
+# Matches the existing bpopsim style: 2-space indent, braces on their own line
+# for functions and classes, attached for control statements, 120 columns.
+# Vendored code under src/c/bpopsim (anyoption.*, tree.hh, tree_util.hh,
+# icsilog.*) and tests/third_party is excluded via the .clang-format-ignore file.
+---
+Language: Cpp
+BasedOnStyle: LLVM
+Standard: c++17
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+ColumnLimit: 120
+AccessModifierOffset: -2
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true
+  AfterFunction: true
+  AfterStruct: true
+  AfterNamespace: false
+  AfterControlStatement: Never
+  AfterEnum: true
+  BeforeElse: false
+  SplitEmptyFunction: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: true
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerIndentWidth: 0
+NamespaceIndentation: All
+PointerAlignment: Left
+SpaceAfterTemplateKeyword: true
+SpacesBeforeTrailingComments: 2
+AlignTrailingComments: true
+SortIncludes: false

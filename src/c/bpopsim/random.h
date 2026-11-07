@@ -1,5 +1,4 @@
-#ifndef bpopsim_random_h
-#define bpopsim_random_h
+#pragma once
 
 #include <memory>
 
@@ -15,7 +14,8 @@ namespace bpopsim {
   //! seed reproduces output from before this wrapper existed.
   //!
   //! Only random.cc includes GSL headers.
-  class RandomGenerator {
+  class RandomGenerator
+  {
   public:
     //! Seeds the generator. A seed of 0 selects GSL's default seed for taus2;
     //! callers wanting a random seed should draw one with RandomSeed().
@@ -49,6 +49,4 @@ namespace bpopsim {
     unsigned long seed_;
   };
 
-}
-
-#endif
+}  // namespace bpopsim

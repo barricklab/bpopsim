@@ -1,0 +1,32 @@
+# Run from the repo root after configuring:
+#   conda run -p $PWD/env run-clang-tidy -p build src/c/bpopsim/cPopulation.cc ...
+# Vendored files (anyoption.*, tree.hh, tree_util.hh, icsilog.*) are excluded by
+# HeaderFilterRegex and by not listing them on the command line.
+---
+Checks: >
+  -*,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  -modernize-avoid-c-arrays,
+  -modernize-use-nodiscard,
+  readability-*,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -readability-function-cognitive-complexity,
+  -readability-braces-around-statements,
+  -readability-implicit-bool-conversion,
+  -readability-convert-member-functions-to-static,
+  -readability-else-after-return,
+  -readability-named-parameter,
+  -readability-uppercase-literal-suffix,
+  -readability-isolate-declaration,
+  performance-*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -bugprone-branch-clone
+WarningsAsErrors: ''
+HeaderFilterRegex: 'src/c/bpopsim/(cPopulation|cSubpopulation|common|options|random)\.h$'
+FormatStyle: file
+CheckOptions:
+  readability-identifier-naming.NamespaceCase: lower_case

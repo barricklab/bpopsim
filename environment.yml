@@ -10,6 +10,9 @@ dependencies:
   - cxx-compiler
   - cmake
   - make
+# clang-tidy and clang-format for the modernization cleanup (docs/MODERNIZATION.md Phase 5)
+# and ongoing style checks. Same major version as the compiler so diagnostics agree.
+  - clang-tools
 
 # ---- Build and run ----
 # GSL is bpopsim's single external library and its only runtime dependency (dynamically linked,

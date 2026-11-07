@@ -179,25 +179,60 @@ reaches `-n`, so `-n 6 -b 3` performs 9 transfers and records 0..6.
       the asserts hold on the reference run.
 - [x] 43/43 tests green.
 
-## Phase 5: Mechanical modern C++ cleanup
+## Phase 5: Mechanical modern C++ cleanup (done 2026-11-07)
 
-Mostly `clang-tidy` driven. One check per commit so each is reviewable.
+`clang-tidy` driven, applied in three groups (modernize, readability,
+performance/bugprone) with a full build and test run after each, then
+`clang-format`, then a few manual items.
 
-- [ ] Add `.clang-format` matching existing style (2-space indent) and
-      `.clang-tidy` enabling `modernize-*`, `readability-*`, `performance-*`,
-      `bugprone-*`. Exclude vendored files.
-- [ ] Range-for over iterator loops; `auto` where the type is obvious;
-      `nullptr`; `override`; `using` aliases; `enum class` for `e_colors`;
-      `constexpr` for `log_2`; default member initializers; `#pragma once`;
-      `[[nodiscard]]` on getters; remove `const` on by-value return types.
-- [ ] Delete `cSubpopulation`'s hand-written copy constructor (the defaulted
-      one is correct).
-- [ ] `std::filesystem::create_directories` replaces `create_path` /
-      `mkdir` / `umask`.
-- [ ] Remove `using namespace std` from headers; qualify or add
-      `using std::vector;` etc. inside `namespace bpopsim`.
-- [ ] Replace `make_map` / `make_list` helpers with brace initialization.
-- [ ] Keep `setprecision` behavior exactly; the golden test is the guard.
+- [x] `clang-tools` added to `environment.yml`. `.clang-tidy` (modernize,
+      readability, performance, bugprone with noisy checks disabled),
+      `.clang-format` (2-space, 120 columns, braces after functions/classes),
+      `.clang-format-ignore` for vendored files. Run on our sources with
+      `conda run -p $PWD/env clang-tidy -p build -fix src/c/bpopsim/<file>`
+      (`run-clang-tidy` matched zero files here; the per-file form works).
+- [x] ~230 fixes applied: range-for, `auto`, `nullptr`, `= default`, default
+      member initializers, `using` aliases, `emplace_back`, `const` on
+      by-value returns removed, `empty()` over `size() == 0`, `std::max`,
+      `'\n'` over `endl`, const& parameters, const member functions,
+      consistent parameter names, parentheses on mixed `/` `-` precedence.
+- [x] Manual: `#pragma once` in our five headers; hand-written
+      `cSubpopulation` copy constructor and empty destructor replaced with
+      `= default`; `main()` VLA replaced with a NULL-terminated
+      `vector<char*>`; `create_path` reimplemented on
+      `std::filesystem::create_directories` and no longer calls `umask(0)`
+      (output directories were world-writable before); unused helpers removed
+      from `common.h` (`file_exists`, `file_empty`, `fix_flags`, `make_map`,
+      `make_list`, `get_keys`, `split_on_any`, `reverse_string`,
+      `repeat_char`, `grep`, `shift`, `from_string(bool)`); C headers switched
+      to `<c...>` forms; `using namespace std` removed from `cPopulation.h`
+      and `common.h`.
+- [x] `using namespace std` still reaches everything through vendored
+      `tree.hh` (global scope). Patching that line is Phase 6 and will require
+      qualifying names in `common.h` and the headers.
+- [x] Live code builds warning-free under `-Wall -Wextra`. What remains: a
+      dozen `-Wunused-parameter`/`-Wreturn-type`/`-Wunused-variable` warnings
+      inside the unreferenced `cPopulation` methods that Phase 6 deletes, and
+      `-Wdeprecated-copy-with-user-provided-copy` / `-Wdeprecated-declarations`
+      from vendored `tree.hh`, which goes quiet once Phase 6 moves it to a
+      `SYSTEM` include directory.
+- [x] Golden still byte-identical; 44/44 tests; suite run repeatedly.
+
+Bugs found and fixed along the way (none affect golden output):
+- `cReplicateStatistics::total_mutations`, `total_subpopulations_lost`,
+  `longest_sweep_time` were never initialized. The sanitizer build showed two
+  identical-seed runs reporting 24683 and 76 total mutations. Now `= 0`.
+- `AnyOption::init()` left `struct winsize ws` uninitialized and ignored the
+  `ioctl` result. With stdin not a terminal (tests, batch jobs, pipelines)
+  `terminal_width` was stack garbage, and a small value sent `word_wrap` into
+  an infinite loop while the option table was being built. Reproduced at ~7%
+  of runs with stdin redirected, on the pre-cleanup code too. Fixed by
+  zero-initializing and checking the return value, and `word_wrap` no longer
+  jumps backwards when a word is longer than the width. This could hang the
+  real program in any non-interactive run.
+- `e_colors` left as a plain enum: it indexes the (zero-length, marker-mode
+  only) `by_color` array, which Phase 6 removes with the rest of marker mode
+  cleanup.
 
 ## Phase 6: Dead code and vendored code
 

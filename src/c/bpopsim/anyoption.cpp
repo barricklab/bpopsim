@@ -145,9 +145,15 @@ AnyOption::init(int maxopt, int maxcharopt )
     exit (0);
   }
   
-  struct winsize ws;
-  ioctl(0,TIOCGWINSZ,&ws);
-  terminal_width = (ws.ws_col==0) ? 80 : ws.ws_col;
+  // Query the terminal width for usage word-wrapping. When stdin is not a
+  // terminal (batch jobs, tests, pipelines) ioctl fails and leaves ws
+  // untouched, so it must be zero-initialized and the return value checked;
+  // otherwise terminal_width is stack garbage and word_wrap can loop forever.
+  struct winsize ws = {};
+  if (ioctl(0, TIOCGWINSZ, &ws) != 0 || ws.ws_col == 0)
+    terminal_width = 80;
+  else
+    terminal_width = ws.ws_col;
 }
 
 bool
@@ -1159,24 +1165,32 @@ bool AnyOption::count(const string& option_name)
 
 string AnyOption::word_wrap(string sentence, int width)
 {
+  if (width < 1) return sentence;
+
   string::iterator it = sentence.begin();
-  string::iterator last_space = sentence.begin();
-  
+  string::iterator last_space = sentence.end();   // no space seen on the current line yet
+
   int accumulated_width = 0;
   while (it != sentence.end())
   {
     accumulated_width++;
     if (*it == ' ') last_space = it;
-    
+
     if (accumulated_width > width)
     {
-      // Go back to letter after space
-      it = last_space;
-      *last_space = '\n';
+      if (last_space != sentence.end())
+      {
+        // Break at the last space and continue from the letter after it.
+        it = last_space;
+        *last_space = '\n';
+        last_space = sentence.end();
+      }
+      // else: a single word longer than the width; leave it unbroken rather
+      // than jumping back to an earlier position, which looped forever.
       accumulated_width = 0;
     }
     it++;
   }
-  
+
   return sentence;
 }

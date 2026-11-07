@@ -61,12 +61,12 @@ TEST_CASE("from_string<vector<double>> reads newline-separated values")
 {
   // AnyOption joins repeated options with "\n"; this is how -u/-s categories
   // reach SimulationParameters.
-  vector<double> v = from_string<vector<double> >("1E-7\n2E-7");
+  vector<double> v = from_string<vector<double>>("1E-7\n2E-7");
   REQUIRE(v.size() == 2);
   CHECK(v[0] == doctest::Approx(1e-7));
   CHECK(v[1] == doctest::Approx(2e-7));
 
-  vector<double> single = from_string<vector<double> >("0.1");
+  vector<double> single = from_string<vector<double>>("0.1");
   REQUIRE(single.size() == 1);
   CHECK(single[0] == doctest::Approx(0.1));
 }

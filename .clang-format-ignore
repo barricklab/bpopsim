@@ -1,0 +1,8 @@
+# Vendored third-party code is not reformatted.
+src/c/bpopsim/anyoption.cpp
+src/c/bpopsim/anyoption.h
+src/c/bpopsim/tree.hh
+src/c/bpopsim/tree_util.hh
+src/c/bpopsim/icsilog.c
+src/c/bpopsim/icsilog.h
+tests/third_party/*

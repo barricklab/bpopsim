@@ -1,5 +1,4 @@
-#ifndef bpopsim_options_h
-#define bpopsim_options_h
+#pragma once
 
 #include "common.h"
 #include "cPopulation.h"
@@ -16,9 +15,7 @@ namespace bpopsim {
   //! values; everything downstream works from the structs.
   //! ParseSimulationParameters() calls Finalize() but not Validate().
   SimulationParameters ParseSimulationParameters(AnyOption& options);
-  OutputParameters     ParseOutputParameters(AnyOption& options);
-  MarkerDivergence     ParseMarkerDivergence(AnyOption& options);
+  OutputParameters ParseOutputParameters(AnyOption& options);
+  MarkerDivergence ParseMarkerDivergence(AnyOption& options);
 
-}
-
-#endif
+}  // namespace bpopsim

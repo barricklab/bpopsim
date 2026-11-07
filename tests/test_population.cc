@@ -11,29 +11,29 @@ using namespace bpopsim;
 
 namespace {
 
-// A small, fast population: 1000 cells, 3 generations per transfer (8x dilution),
-// a high mutation rate so mutations actually happen in a few transfers.
-SimulationParameters SmallPopulation(uint32_t transfers)
-{
-  SimulationParameters sp;
-  sp.initial_population_size = 1000;
-  sp.initial_population_size_after_transfer = 1000;
-  sp.generations_per_transfer = 3;
-  sp.mutation_rates_per_division = {1e-3};
-  sp.mutation_fitness_effects = {0.1};
-  sp.maximum_number_of_transfers = transfers;
-  sp.Finalize();
-  return sp;
-}
+  // A small, fast population: 1000 cells, 3 generations per transfer (8x dilution),
+  // a high mutation rate so mutations actually happen in a few transfers.
+  SimulationParameters SmallPopulation(uint32_t transfers)
+  {
+    SimulationParameters sp;
+    sp.initial_population_size = 1000;
+    sp.initial_population_size_after_transfer = 1000;
+    sp.generations_per_transfer = 3;
+    sp.mutation_rates_per_division = {1e-3};
+    sp.mutation_fitness_effects = {0.1};
+    sp.maximum_number_of_transfers = transfers;
+    sp.Finalize();
+    return sp;
+  }
 
-OutputParameters DebugOutput()
-{
-  OutputParameters op;
-  op.debug = true;   // turns on the internal population-size consistency asserts
-  return op;
-}
+  OutputParameters DebugOutput()
+  {
+    OutputParameters op;
+    op.debug = true;  // turns on the internal population-size consistency asserts
+    return op;
+  }
 
-} // namespace
+}  // namespace
 
 TEST_CASE("a seeded simulation runs to the requested number of transfers")
 {
