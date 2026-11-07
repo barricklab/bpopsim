@@ -49,7 +49,7 @@ extern bool g_verbose;
 inline bool file_exists(const char *filename)
 {
   ifstream ifile(filename);
-  return ifile;
+  return static_cast<bool>(ifile);
 }
 
 inline bool file_empty(const char *filename)

@@ -807,8 +807,8 @@ void cPopulation::CullSubpopulationsThatDidNotEstablish() {
     if (it->marked_for_deletion) {
       tree<cGenotype>::leaf_iterator ite = it;
       it++;
-      genotype_tree.erase(ite);
       genotype_id_map_into_tree.erase(ite->unique_node_id);
+      genotype_tree.erase(ite);
     } else {
       it++;
     }
