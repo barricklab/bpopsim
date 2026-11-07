@@ -62,6 +62,7 @@
 #include <sys/ioctl.h>
 
 #include "anyoption.h"
+#include <cstring>  // strcpy, strlen (not provided transitively by libstdc++)
 
 AnyOption::AnyOption()
 {

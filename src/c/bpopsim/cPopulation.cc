@@ -51,7 +51,7 @@ void cPopulation::RunSimulation()
     // cerr << current_population_size << endl;
 
     // Debug check on mutate function
-    double cells_before_mutate;
+    double cells_before_mutate = 0;
     if (debug) cells_before_mutate = CalculatePopulationSize();
 
     // Slightly greater than one for floating point errors.
