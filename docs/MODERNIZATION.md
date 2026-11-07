@@ -271,7 +271,18 @@ Bugs found and fixed along the way (none affect golden output):
       drop the global using-directives.
 - [x] Build warning-free; 44/44 tests; golden identical.
 
-## Phase 7: Quality of life (done 2026-11-07, CI unverified until pushed)
+## Phase 7: Quality of life (done 2026-11-07)
+
+CI results from the first pushes:
+- Run 1: macOS green; Ubuntu failed to compile because vendored
+  `anyoption.cpp` used `strcpy`/`strlen` without `<cstring>` (libc++ had
+  provided it transitively). Fixed.
+- Run 2: Ubuntu built and **the golden regression passed on Linux**, so the
+  seeded simulation output is identical across macOS and Ubuntu. One unit
+  test failed: the 5th recorded `Exponential` draw differed by 1 ulp on
+  glibc, because `gsl_ran_exponential` calls libm `log()`. Uniform, integer
+  and binomial draws were bit-identical. The check now allows a few ulps and
+  the caveat is documented in README.md and CLAUDE.md.
 
 - [x] `.github/workflows/build-and-test.yml`: ubuntu-latest and macos-latest,
       conda env from `environment.yml` via `conda-incubator/setup-miniconda`

@@ -29,7 +29,11 @@ TEST_CASE("seed 12345 reproduces the recorded GSL 2.8 reference sequence")
 
   const double exponential[5] = {2110867.7712601679, 4196622.1659500916, 1151990.7039830985, 983597.8671306466,
                                  421827.07449777075};
-  for (double expected : exponential) CHECK(r.Exponential(1e6) == expected);
+  // Exponential draws go through the C library log(), whose last bit differs
+  // between glibc and Apple libm (seen in CI: the 5th value differed by 1 ulp on
+  // Ubuntu). Uniform, UniformInt and Binomial are integer algorithms and are
+  // exact everywhere. Allow a few ulps here.
+  for (double expected : exponential) CHECK(r.Exponential(1e6) == doctest::Approx(expected).epsilon(1e-13));
 }
 
 TEST_CASE("the same seed reproduces the same stream; different seeds differ")

@@ -90,18 +90,25 @@ Scripts for plotting these in R, Python, and MATLAB live under `src/R`,
 
 ## Reproducibility
 
-Given the same seed, GSL version, and command line, bpopsim produces identical
-output on every platform. The test suite pins the random stream for one seed
-and compares a full run against stored reference output
-(`tests/golden/`), and continuous integration runs that check on both Linux
-and macOS. Keep the GSL version pinned in `environment.yml` if you need to
-reproduce old runs exactly.
+Given the same seed, GSL version, and command line, bpopsim produces the same
+output on every platform at the precision it writes. The test suite pins the
+random stream for one seed and compares a full run against stored reference
+output (`tests/golden/`), and continuous integration runs that check on both
+Linux and macOS. Keep the GSL version pinned in `environment.yml` if you need
+to reproduce old runs exactly.
+
+One caveat: GSL's uniform, integer, and binomial draws are integer algorithms
+and are bit-identical everywhere, but the exponential sampler calls the C
+library's `log()`, whose last binary digit can differ between glibc and
+Apple's libm. Written output is identical on Linux and macOS at the precision
+bpopsim uses, but bit-for-bit identity of very long runs across operating
+systems is not guaranteed.
 
 ## Development
 
-See `CLAUDE.md` for the code layout, conventions, and known issues, and
-`docs/MODERNIZATION.md` for the history of the 2026 modernization. Tests use
-[doctest](https://github.com/doctest/doctest) (vendored) under CTest.
+See `CLAUDE.md` for the code layout, conventions, and known issues. Tests use
+[doctest](https://github.com/doctest/doctest) (vendored) under CTest; run
+them with `ctest --test-dir build`.
 
 ## License
 

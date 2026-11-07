@@ -8,9 +8,9 @@ Every genotype that ever arose is a node in an ancestry tree, which lets the
 program report clade frequencies, line-of-descent statistics, sweep sizes and
 times, and a Muller matrix for plotting population dynamics.
 
-Written ~2010 (Barrick lab, originally alongside breseq). Pre-C++11 style
-throughout. A staged modernization roadmap lives in `docs/MODERNIZATION.md`;
-work through it one phase at a time.
+C++17, built with CMake inside a conda environment, tested with doctest and
+a golden-output regression under CTest. `docs/MODERNIZATION.md` is the
+development log; nothing in it is needed to work on the code.
 
 ## Repository layout
 
@@ -21,8 +21,7 @@ work through it one phase at a time.
 - `src/c/third_party/` vendored code, built as a `SYSTEM` include directory
   and excluded from clang-format/clang-tidy: `tree.hh` / `tree_util.hh`
   (Kasper Peeters' STL-like n-ary tree, holds the genotype ancestry) and
-  `anyoption.{h,cpp}` (command-line parser, locally modified; see the
-  `init()` and `word_wrap()` fixes noted in `docs/MODERNIZATION.md`).
+  `anyoption.{h,cpp}` (command-line parser, locally modified).
 - `src/c/bpopsim.1` man page, covering every option and output file. Update
   it together with `options.cc` and the option table in `README.md`.
 - `.github/workflows/build-and-test.yml` builds and runs `ctest` plus a
@@ -137,6 +136,12 @@ program falls back to printing usage.
   taus2 `gsl_rng`. `random.cc` is the only file that includes GSL headers;
   keep it that way. One generator per execution, seeded once. Never reseed
   per replicate. `tests/test_random.cc` pins the stream for seed 12345.
+- Cross-platform limits of that reproducibility: `Uniform`, `UniformInt` and
+  `Binomial` are integer algorithms and bit-identical on Linux and macOS.
+  `Exponential` goes through libm `log()`, whose last bit can differ between
+  glibc and Apple libm. Written output (6 significant digits) is identical on
+  both; do not write tests that expect bit-exact exponential draws across
+  platforms. Use `Approx` with a tight epsilon as `test_random.cc` does.
 - `assert()` is active in every build type (CMake strips `-DNDEBUG`). The
   simulation uses asserts as internal consistency checks and the tests rely
   on them.
@@ -155,37 +160,38 @@ program falls back to printing usage.
   `-Wall -Wextra` and must stay that way.
 - Style is enforced by `.clang-format` (run
   `conda run -p $PWD/env clang-format -i <files>` on our sources only; vendored
-  files are listed in `.clang-format-ignore`). `.clang-tidy` holds the check
-  set used for the modernization; run it per file with
+  files are listed in `.clang-format-ignore`). `.clang-tidy` holds the
+  project's check set; run it per file with
   `conda run -p $PWD/env clang-tidy -p build src/c/bpopsim/<file>`.
 - `common.h` helpers are at global scope because the vendored `anyoption.h`
   uses `split()` and `to_string()`. Unqualified `std` names compile only
   because vendored `tree.hh` and `anyoption.h` each have a global
-  `using namespace std;`. Qualifying our own code is deferred until
-  `AnyOption` is replaced (roadmap Phase 6, optional item).
-- When stdin is not a terminal, `AnyOption` uses an 80-column width for usage
-  text. It used to read uninitialized memory there and could hang; see the
-  note in `docs/MODERNIZATION.md` Phase 5 before touching `init()` or
-  `word_wrap()`.
+  `using namespace std;`. Qualifying our own code waits on replacing
+  `AnyOption`.
+- `AnyOption::init()` probes the terminal width with `ioctl` and falls back
+  to 80 columns when stdin is not a terminal. Keep the `winsize` struct
+  zero-initialized and the return value checked, and keep `word_wrap()` from
+  ever moving its cursor backwards; either regression makes option parsing
+  hang in non-interactive runs.
 
-## Known issues (fix via roadmap, not ad hoc)
+## Known issues
 
 - `--output-largest-sweep-size` is `assert(false)`, not implemented.
 - `GenotypesAboveThreshold()` reads `clade_frequencies` instead of
-  `genotype_frequencies` (copy-paste), so the genotype frequency file
-  selects columns by clade frequency. Fixing this changes output.
+  `genotype_frequencies`, so the genotype frequency file selects its columns
+  by clade frequency. Fixing this changes output and requires regenerating
+  `tests/golden/`.
 - `OutputParameters::burn_in` is `int32_t` but parsed as `uint32_t`.
 - Marker-divergence mode (`-k 2`) seeds two genotypes carrying markers
   `'r'` and `'w'` and then runs an ordinary simulation. The divergence
-  stopping rule (`-x`) and the red/white ratio output (`-t`) were never
-  re-implemented after the 2011 rewrite and their code was removed in
-  Phase 6, so those two options currently have no effect.
+  stopping rule (`-x`) and the red/white ratio output (`-t`) are not
+  implemented, so those two options have no effect.
 - Burn-in transfers (`-b`) are performed in addition to `-n`, not within it.
 
-## Uncommitted work
+## Stashed work
 
-As of 2026-11-07 there is a stash (or working-tree diff) that changes
-`mutation_rates_per_division` and `mutation_fitness_effects` to
+A git stash named `WIP vector<vector> mutation rates` holds an incomplete
+change that makes `mutation_rates_per_division` and `mutation_fitness_effects`
 `vector<vector<double>>` with a `|` separator between groups and adds a
-`mutation_path` field to `cGenotype`. It is incomplete and does not compile.
-Do not build on it until it is finished or dropped.
+`mutation_path` field to `cGenotype`. It does not compile. Do not build on it
+until it is finished or dropped.
