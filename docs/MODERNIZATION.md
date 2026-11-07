@@ -301,9 +301,10 @@ CI results from the first pushes:
 - [ ] Remove the "Known issues" and "Uncommitted work" sections of
       `CLAUDE.md` as they are resolved. Still open: `GenotypesAboveThreshold`
       reading clade frequencies (an intentional output change when fixed),
-      `--output-largest-sweep-size` unimplemented, `burn_in` parsed unsigned,
-      marker-mode `-x`/`-t` inert, and the stashed `vector<vector<double>>`
-      work.
+      `burn_in` parsed unsigned, and the stashed `vector<vector<double>>`
+      work. The never-implemented `--output-largest-sweep-size` and
+      `--minimum-sweep-frequency-difference` and the inert marker-mode
+      `-x`/`-t` options were removed outright (code, tests, man page).
 
 ## Verification at every phase
 

@@ -128,7 +128,6 @@ TEST_CASE("OutputParameters and MarkerDivergence defaults")
 
   MarkerDivergence md;
   CHECK_FALSE(md.marker_states);
-  CHECK(md.max_divergence_factor == doctest::Approx(100));
 }
 
 // ---- Parsing from a command line ----
@@ -179,26 +178,9 @@ TEST_CASE("ParseSimulationParameters with mismatched -u/-s fails Validate")
 
 TEST_CASE("ParseOutputParameters and ParseMarkerDivergence read their options")
 {
-  ParsedOptions p({"-o",
-                   "out_dir",
-                   "-c",
-                   "5",
-                   "-b",
-                   "3",
-                   "--diverged-mutation-depth",
-                   "4",
-                   "--minimum-output-frequency",
-                   "0.05",
-                   "--output-diverged-frequencies",
-                   "--output-longest-sweep-time",
-                   "-v",
-                   "--debug",
-                   "-k",
-                   "2",
-                   "-x",
-                   "50",
-                   "-t",
-                   "7"});
+  ParsedOptions p({"-o", "out_dir", "-c", "5", "-b", "3", "--diverged-mutation-depth", "4",
+                   "--minimum-output-frequency", "0.05", "--output-diverged-frequencies", "--output-longest-sweep-time",
+                   "-v", "--debug", "-k", "2"});
   OutputParameters op = ParseOutputParameters(p.options);
   CHECK(op.output_directory_name == "out_dir");
   CHECK(op.coarse_graining == 5);
@@ -207,14 +189,11 @@ TEST_CASE("ParseOutputParameters and ParseMarkerDivergence read their options")
   CHECK(op.minimum_output_frequency == doctest::Approx(0.05));
   CHECK(op.output_diverged_frequencies);
   CHECK(op.output_longest_sweep_time);
-  CHECK_FALSE(op.output_largest_sweep_size);
   CHECK(op.verbose);
   CHECK(op.debug);
 
   MarkerDivergence md = ParseMarkerDivergence(p.options);
-  CHECK(md.marker_states);
-  CHECK(md.max_divergence_factor == doctest::Approx(50));
-  CHECK(md.transfer_interval_to_print == doctest::Approx(7));
+  CHECK(md.marker_states == 2);
 }
 
 // ---- Behavior built on the parameters ----

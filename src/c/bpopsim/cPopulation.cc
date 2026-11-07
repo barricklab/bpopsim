@@ -414,28 +414,6 @@ void cStatistics::OutputDivergedFrequenciesByDepth()
   }
 }
 
-// Not implemented
-void cStatistics::OutputLargestSweepSize() const
-{
-  ofstream output_file;
-  string output_file_name = output_directory_name + "/largest_sweep_size.tab";
-  output_file.open(output_file_name.c_str(), ios::out);
-  /*
-   int32_t num_entries = (*this)[0].diverged_frequencies_by_depth.size();
-
-   for (uint32_t replicate = 0; replicate < this->size(); ++replicate) {
-
-     cReplicateStatistics& replicate_statistics = (*this)[replicate];
-
-     // Loop through the final line of descent
-
-
-     output_file << endl;
-   }
- */
-  output_file.close();
-}
-
 void cStatistics::OutputLongestSweepTime()
 {
   ofstream output_file;
@@ -931,10 +909,6 @@ void cPopulation::RecordStatisticsAtEnd()
 
       replicate_statistics.diverged_frequencies_by_depth.push_back(add_frequencies);
     }  // end transfer loop
-  }
-
-  if (output_parameters.output_largest_sweep_size) {
-    assert(false);  // not implemented
   }
 
   if (output_parameters.output_longest_sweep_time) {

@@ -48,7 +48,6 @@ namespace bpopsim {
     int32_t burn_in = 0;  // Number of transfers to perform before recording output
     uint32_t diverged_mutation_depth = 10;
     bool output_diverged_frequencies = false;
-    bool output_largest_sweep_size = false;
     bool output_longest_sweep_time = false;
     double minimum_output_frequency = 0.01;
     bool verbose = false;  // Print step-by-step details of the run (-v)
@@ -59,8 +58,6 @@ namespace bpopsim {
   struct MarkerDivergence
   {
     uint32_t marker_states = 0;  // Number of neutral marker states (0 = off; 2 is the only supported value)
-    double max_divergence_factor = 100;
-    double transfer_interval_to_print = 1;
   };
 
   // Statistics across all runs
@@ -75,7 +72,6 @@ namespace bpopsim {
     void OutputAveragePopulationFitness();
     void OutputAveragePopulationMutationCounts();
     void OutputDivergedFrequenciesByDepth();
-    void OutputLargestSweepSize() const;
     void OutputLongestSweepTime();
 
     string output_directory_name;

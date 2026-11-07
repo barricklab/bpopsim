@@ -176,16 +176,15 @@ program falls back to printing usage.
 
 ## Known issues
 
-- `--output-largest-sweep-size` is `assert(false)`, not implemented.
 - `GenotypesAboveThreshold()` reads `clade_frequencies` instead of
   `genotype_frequencies`, so the genotype frequency file selects its columns
   by clade frequency. Fixing this changes output and requires regenerating
   `tests/golden/`.
 - `OutputParameters::burn_in` is `int32_t` but parsed as `uint32_t`.
 - Marker-divergence mode (`-k 2`) seeds two genotypes carrying markers
-  `'r'` and `'w'` and then runs an ordinary simulation. The divergence
-  stopping rule (`-x`) and the red/white ratio output (`-t`) are not
-  implemented, so those two options have no effect.
+  `'r'` and `'w'` and then runs an ordinary simulation. Nothing
+  marker-specific is reported; a divergence stopping rule and a marker-ratio
+  output would have to be written.
 - Burn-in transfers (`-b`) are performed in addition to `-n`, not within it.
 
 ## Stashed work

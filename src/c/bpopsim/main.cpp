@@ -21,8 +21,8 @@ int bpopsim_default_action(int argc, char* argv[])
   // Require one output option
   if (!options.count("output-average-fitness") && !options.count("output-average-mutations") &&
       !options.count("output-clade-frequencies") && !options.count("output-genotype-frequencies") &&
-      !options.count("output-diverged-frequencies") && !options.count("output-largest-sweep-size") &&
-      !options.count("output-longest-sweep-time") && !options.count("output-muller")) {
+      !options.count("output-diverged-frequencies") && !options.count("output-longest-sweep-time") &&
+      !options.count("output-muller")) {
 
     options.addUsage("");
     options.addUsage("You must provide at least one output option.");
@@ -101,10 +101,6 @@ int bpopsim_default_action(int argc, char* argv[])
 
   if (options.count("output-diverged-frequencies")) {
     final_statistics.OutputDivergedFrequenciesByDepth();
-  }
-
-  if (options.count("output-largest-sweep-size")) {
-    final_statistics.OutputLargestSweepSize();
   }
 
   if (options.count("output-longest-sweep-time")) {

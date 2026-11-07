@@ -45,11 +45,6 @@ namespace bpopsim {
             "state of a neutral genetic marker. Do not track genotypes. Only track the neutral marker state of each "
             "subpopulation. Default (0=OFF).",
             0);
-    options("max-marker-divergence-ratio,x",
-            "Stop if divergence factor between the subpopulations with the most abundant and next-most abundant marker "
-            "state exceeds this factor.",
-            100);
-    options("transfer-interval-to-print,t", "Marker divergence printing intervals.", 1);
     options.addUsage("");
     options.addUsage("==== Statistical Output Files and Options ====");
     options.addUsage("");
@@ -73,14 +68,6 @@ namespace bpopsim {
             "dominant to 'diverged_frequencies_X.tab'",
             TAKES_NO_ARGUMENT);
     options("diverged-mutation-depth", "Maximum depth of diverged mutations to output.", 10);
-    options("output-largest-sweep-size",
-            "Output the largest number of mutations sweeping simultaneously along the line of descent to the final "
-            "dominant to 'largest_sweep_size.tab'",
-            TAKES_NO_ARGUMENT);
-    options("minimum-sweep-frequency-difference",
-            "Adjacent mutations along the line of descent must have frequncies that are different by at least this "
-            "threshold at one recorded time point to be considered part of different sweeps.",
-            0.05);
     options("output-longest-sweep-time",
             "Output the longest time that a mutation along the line of descent to the final dominant took to sweep "
             "from ≥5% to ≥95% frequency in the population to 'longest_sweep_time.tab'",
@@ -153,7 +140,6 @@ namespace bpopsim {
     p.diverged_mutation_depth = from_string<uint32_t>(options["diverged-mutation-depth"]);
     p.output_diverged_frequencies = options.count("output-diverged-frequencies");
     p.minimum_output_frequency = from_string<double>(options["minimum-output-frequency"]);
-    p.output_largest_sweep_size = options.count("output-largest-sweep-size");
     p.output_longest_sweep_time = options.count("output-longest-sweep-time");
     p.verbose = options.count("verbose");
     p.debug = options.count("debug");
@@ -164,8 +150,6 @@ namespace bpopsim {
   {
     MarkerDivergence p;
     p.marker_states = from_string<uint32_t>(options["marker-states"]);
-    p.max_divergence_factor = from_string<double>(options["max-marker-divergence-ratio"]);
-    p.transfer_interval_to_print = from_string<double>(options["transfer-interval-to-print"]);
     return p;
   }
 

@@ -93,13 +93,6 @@ Stop a replicate once mean fitness reaches W (default 0, off).
 .BR \-k ", " \-\-marker\-states " \fIN\fR"
 Start with the population split equally into N subpopulations carrying
 different states of a neutral marker (default 0, off; only 2 is supported).
-.TP
-.BR \-x ", " \-\-max\-marker\-divergence\-ratio " \fIR\fR"
-.TQ
-.BR \-t ", " \-\-transfer\-interval\-to\-print " \fIN\fR"
-Accepted for compatibility but currently have no effect: the marker
-divergence stopping rule and ratio output were never re-implemented after the
-2011 rewrite.
 .SH OUTPUT OPTIONS
 All output files are tab-separated text written to the output folder.
 .TP
@@ -158,12 +151,6 @@ Write
 .IR longest_sweep_time.tab :
 per replicate, the longest time in transfers for a mutation on the final line
 of descent to rise from at most 5% to at least 95% frequency.
-.TP
-.B \-\-output\-largest\-sweep\-size
-Not implemented; the program aborts if this is given.
-.TP
-.BI \-\-minimum\-sweep\-frequency\-difference " F"
-Accepted but unused (belongs to the unimplemented option above).
 .TP
 .B \-\-output\-muller
 Write
