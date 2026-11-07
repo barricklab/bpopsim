@@ -15,9 +15,15 @@ regression output for a fixed seed.
 | C++ standard | C++17 | Apple clang 17 supports it fully. `std::filesystem`, `std::optional`, structured bindings. |
 | WIP edits | Stash before starting | The `vector<vector<double>>` mutation-rate edits do not compile. |
 
-Toolchain at time of writing: Apple clang 17, cmake 3.11 (MacPorts), GSL 1.13.
-`cmake_minimum_required(VERSION 3.11)` works today. `brew install cmake` for a
-current release is recommended but not required.
+Toolchain comes from the local conda env in `environment.yml` (see
+CLAUDE.md): conda-forge clang 21, cmake 4.4, GSL 2.8 pinned. Phase 1 will use
+`cmake_minimum_required(VERSION 3.15)` so the project also builds on Ubuntu LTS
+for Phase 7 CI. System copies (Apple clang 17, MacPorts cmake 3.11, a 2009
+x86_64 GSL 1.13 in `/usr/local`) are not used.
+
+Cross-toolchain check already done: the golden output is byte-identical when
+built with Apple clang 17 + Homebrew GSL 2.8 and with conda clang 21 + conda
+GSL 2.8.
 
 ## Phase 0: Safety net (done 2026-11-07)
 
@@ -33,9 +39,11 @@ Everything later is measured against this.
     modern allocator this left a dangling iterator in
     `genotype_id_map_into_tree`, crashing `--output-clade-frequencies`
     (segfault) and `--output-diverged-frequencies` (assert). Lines swapped.
-  - Environment: the only GSL present was x86_64 1.13 from 2009; installed
-    GSL 2.8 via Homebrew and configure with
-    `--with-gsl-prefix=/opt/homebrew/opt/gsl`.
+  - `icsilog.h` used the `register` storage class, a hard error under the
+    C++17 default of conda's clang 21. Removed (it is a no-op hint).
+  - Environment: the only GSL present was x86_64 1.13 from 2009. Added
+    `environment.yml` (conda-forge: cxx-compiler, cmake, autotools,
+    gsl=2.8) and build inside `./env` as breseq does.
 - [x] Golden output committed under `tests/golden/`, command in
       `tests/golden/COMMAND`. Runs in well under a second, two replicates,
       30 transfers, every working output option. Verified byte-identical

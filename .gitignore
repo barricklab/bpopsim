@@ -66,3 +66,6 @@ pm_to_blib
 *.swp
 *~
 *.orig
+
+# Local conda dev environment (environment.yml)
+/env/

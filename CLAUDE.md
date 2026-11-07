@@ -32,17 +32,37 @@ work through it one phase at a time.
 
 ## Build and run
 
-Requires a C++ compiler and GSL >= 1.14 (`brew install gsl`). On this
-machine there is also a stale x86_64 GSL 1.13 under `/usr/local` that
-configure finds first; point it at Homebrew explicitly.
+All build and run prerequisites come from a local conda environment defined
+in `environment.yml` (compiler, make, cmake, autotools, GSL). Create it
+once at `./env` (gitignored), then run commands inside it with `conda run`
+so nothing needs activating:
 
 ```
-./bootstrap.sh
-./configure --with-gsl-prefix=/opt/homebrew/opt/gsl
-make -j
+conda env create -f environment.yml --prefix=$PWD/env
+
+conda run -p $PWD/env ./bootstrap.sh
+conda run -p $PWD/env sh -c './configure --with-gsl-prefix="$CONDA_PREFIX" \
+    CC="$CONDA_PREFIX/bin/clang" CXX="$CONDA_PREFIX/bin/clang++"'
+conda run -p $PWD/env make -j
 src/c/bpopsim/bpopsim -u 1E-7 -s 0.1 -n 50 -r 3 -o out \
     --output-average-fitness --output-muller
 ```
+
+Why the explicit flags: conda-forge's compiler packages no longer export
+`CC`/`CXX` on activation, so without them autoconf picks up Apple's
+`/usr/bin/gcc` and the GSL link check fails. `--with-gsl-prefix` is needed
+because this machine also has a stale x86_64 GSL 1.13 in `/usr/local` that
+`gsl.m4` finds first. The `sh -c` wrapper lets `$CONDA_PREFIX` expand inside
+`conda run`. The resulting binary carries an rpath into `env/lib`, so it
+runs without activating the env.
+
+Unlike breseq, there is no separate runtime environment: GSL is the only
+runtime dependency and it is also a build dependency.
+
+If `./configure` or `Makefile` is missing, the bootstrap and configure steps
+have not been run in this checkout. After switching between toolchains, run
+`make distclean` first; otherwise `make` re-runs the old configure with its
+old arguments.
 
 At least one `--output-*` flag is required or the program prints usage and
 exits. `bpopsim --help` lists all options. There is no test target yet

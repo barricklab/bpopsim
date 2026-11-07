@@ -36,14 +36,14 @@
 #define __ICSI_LOG__
 
 /* ICSIlog v2.0 */
-inline double icsi_log_v2(const float val, register float* const pTable, register const unsigned precision)
+inline double icsi_log_v2(const float val, float* const pTable, const unsigned precision)
 {
      /* get access to float bits */
-     register const int* const pVal = (const int*)(&val);
+     const int* const pVal = (const int*)(&val);
 
      /* extract exponent and mantissa (quantized) */
-     register const int exp = ((*pVal >> 23) & 255) - 127;
-     register const int man = (*pVal & 0x7FFFFF) >> (23 - precision);
+     const int exp = ((*pVal >> 23) & 255) - 127;
+     const int man = (*pVal & 0x7FFFFF) >> (23 - precision);
 
      /* exponent plus lookup refinement */
      return ((double)(exp) + pTable[man]) * 0.69314718055995f;

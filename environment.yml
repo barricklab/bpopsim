@@ -1,0 +1,30 @@
+name: bpopsim
+channels:
+  - conda-forge
+dependencies:
+# ---- Build only ----
+# Compiler and build tools.
+#   => Should be compatible with any versions.
+#   => conda-forge's compiler packages no longer ship activation scripts that export CC/CXX.
+#      They install cc/c++/clang/clang++ shims into $CONDA_PREFIX/bin instead. Autotools
+#      must be told about them explicitly (see CLAUDE.md); CMake finds them on PATH.
+  - cxx-compiler
+  - make
+  - cmake
+  - ninja
+# Autotools: still needed until the CMake build replaces them (docs/MODERNIZATION.md Phase 1).
+# Remove this block when that phase lands.
+  - autoconf
+  - automake
+  - libtool
+  - pkg-config
+  - m4
+
+# ---- Build and run ----
+# GSL is bpopsim's single external library and its only runtime dependency (dynamically linked,
+# found via rpath into this env). There are no external tools invoked at run time, so unlike
+# breseq one environment serves both building and running.
+#   => Pinned because GSL supplies every random draw in the simulation. A change in GSL's
+#      sampling algorithms would change seeded output and fail the tests/golden regression.
+#      Moving to a newer version is a deliberate step that regenerates the golden files.
+  - gsl=2.8
