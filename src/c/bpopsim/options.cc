@@ -143,7 +143,9 @@ namespace bpopsim {
     OutputParameters p;
     p.output_directory_name = options["output-folder"];
     p.coarse_graining = from_string<uint32_t>(options["coarse-graining"]);
-    p.burn_in = from_string<uint32_t>(options["burn-in"]);
+    auto burn_in = from_string<int64_t>(options["burn-in"]);
+    if (burn_in < 0) throw std::invalid_argument("--burn-in must be 0 or greater.");
+    p.burn_in = static_cast<uint32_t>(burn_in);
     p.diverged_mutation_depth = from_string<uint32_t>(options["diverged-mutation-depth"]);
     p.output_diverged_frequencies = options.count("output-diverged-frequencies");
     p.minimum_output_frequency = from_string<double>(options["minimum-output-frequency"]);

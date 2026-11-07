@@ -193,7 +193,6 @@ program falls back to printing usage.
 
 ## Known issues
 
-- `OutputParameters::burn_in` is `int32_t` but parsed as `uint32_t`.
 - In marker mode the ancestry tree has one root per marker, but
   `GenotypesFromAncestorToFinalDominant()` walks only the first root, so
   `--output-diverged-frequencies` and `--output-longest-sweep-time` are not

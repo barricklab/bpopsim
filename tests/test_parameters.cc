@@ -306,3 +306,13 @@ TEST_CASE("marker-mode options parse into MarkerDivergence and OutputParameters"
     CHECK(op.output_marker_frequencies);
   }
 }
+
+TEST_CASE("a negative --burn-in is rejected instead of wrapping")
+{
+  ParsedOptions ok({"-b", "4"});
+  CHECK(ParseOutputParameters(ok.options).burn_in == 4);
+
+  ParsedOptions negative({"-b", "-1"});
+  CHECK_THROWS_AS(ParseOutputParameters(negative.options), std::invalid_argument);
+  CHECK_THROWS_WITH(ParseOutputParameters(negative.options), "--burn-in must be 0 or greater.");
+}

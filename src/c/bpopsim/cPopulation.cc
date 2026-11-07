@@ -15,7 +15,7 @@ cPopulation::cPopulation(SimulationParameters in_simulation_parameters, const Ou
 , debug(in_output_parameters.debug)
 , replicate(in_replicate)
 , maximum_subpopulation_fitness(simulation_parameters.initial_fitness)
-, num_completed_transfers(-output_parameters.burn_in)  // This prevents recording
+, num_completed_transfers(-static_cast<int32_t>(output_parameters.burn_in))  // Negative during burn-in: not recorded
 , rng(in_rng)
 , log_2(log(2))
 {}

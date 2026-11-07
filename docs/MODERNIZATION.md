@@ -331,6 +331,11 @@ CI results from the first pushes:
   including one that ties each marker fraction to the clade frequency of its
   root genotype. Default mode untouched; golden identical.
 
+- 2026-11-07: `OutputParameters::burn_in` is `uint32_t` (was `int32_t`
+  parsed as unsigned); a negative `--burn-in` is rejected with a message
+  instead of wrapping. The parse calls in `main` moved inside the error
+  handling block so parse-time errors print the usage text too.
+
 ## Verification at every phase
 
 ```

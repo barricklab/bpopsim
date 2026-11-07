@@ -40,11 +40,14 @@ int bpopsim_default_action(int argc, char* argv[])
   }
 
   // Convert the command line into parameter structs; everything downstream uses these.
-  SimulationParameters simulation_parameters = ParseSimulationParameters(options);
-  OutputParameters output_parameters = ParseOutputParameters(options);
-  MarkerDivergence marker_divergence = ParseMarkerDivergence(options);
+  SimulationParameters simulation_parameters;
+  OutputParameters output_parameters;
+  MarkerDivergence marker_divergence;
 
   try {
+    simulation_parameters = ParseSimulationParameters(options);
+    output_parameters = ParseOutputParameters(options);
+    marker_divergence = ParseMarkerDivergence(options);
     simulation_parameters.Validate();
 
     // Marker mode consistency checks.

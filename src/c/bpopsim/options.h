@@ -15,6 +15,7 @@ namespace bpopsim {
   //! simulation runs on. These are the only functions that read OptionParser
   //! values; everything downstream works from the structs.
   //! ParseSimulationParameters() calls Finalize() but not Validate().
+  //! ParseOutputParameters() throws std::invalid_argument for a negative --burn-in.
   SimulationParameters ParseSimulationParameters(OptionParser& options);
   OutputParameters ParseOutputParameters(OptionParser& options);
   MarkerDivergence ParseMarkerDivergence(OptionParser& options);

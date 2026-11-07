@@ -48,7 +48,7 @@ namespace bpopsim {
   {
     string output_directory_name = ".";
     uint32_t coarse_graining = 1;
-    int32_t burn_in = 0;  // Number of transfers to perform before recording output
+    uint32_t burn_in = 0;  // Number of transfers to perform before recording output
     uint32_t diverged_mutation_depth = 10;
     bool output_diverged_frequencies = false;
     bool output_longest_sweep_time = false;
