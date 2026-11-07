@@ -915,7 +915,7 @@ void cPopulation::RecordStatisticsAtTransfer()
   /// Statistic: mutation_counts
   /////////////////////////////////////////
   
-  double average_total_mutation_count;  
+  double average_total_mutation_count = 0;
   vector<double> average_mutation_counts(simulation_parameters.mutation_rates_per_division.size(), 0); 
   
   for (uint32_t it = 0; it<current_subpopulations.size(); ++it) {

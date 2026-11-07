@@ -1,6 +1,0 @@
-g++ -Wall -O3  \
-	 -o bpopsim  \
- 	-lboost_program_options -lgsl -lgslcblas -g\
- 	cPopulation.cc cSubpopulation.cc cLineageTree.cc main.cpp 
-
-
