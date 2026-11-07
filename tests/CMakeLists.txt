@@ -1,5 +1,24 @@
-# Regression test: run the fixed-seed command recorded in golden/COMMAND and
-# require every output file to be byte-identical to golden/.
+# ---- Unit tests (doctest, vendored in third_party/doctest) ----
+include("${CMAKE_CURRENT_SOURCE_DIR}/third_party/doctest/doctest.cmake")
+
+add_executable(bpopsim_tests
+  main.cpp
+  test_common.cc
+  test_parameters.cc
+)
+target_include_directories(bpopsim_tests SYSTEM PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/third_party/doctest")
+target_link_libraries(bpopsim_tests PRIVATE bpopsim_core)
+target_compile_options(bpopsim_tests PRIVATE
+  $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang,GNU>:-Wall -Wextra>
+)
+
+# Registers each TEST_CASE as its own CTest test at build time.
+doctest_discover_tests(bpopsim_tests)
+
+# ---- Golden regression test ----
+# Run the fixed-seed command recorded in golden/COMMAND and require every
+# output file to be byte-identical to golden/.
 add_test(NAME golden_regression
   COMMAND "${CMAKE_COMMAND}"
     -DBPOPSIM=$<TARGET_FILE:bpopsim>

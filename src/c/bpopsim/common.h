@@ -182,7 +182,8 @@ inline string join(const vector<string>& values, const string& separator)
 
 inline string chomp(const string& str)
 {
-  return str.substr(0, str.find_last_not_of("\n \t")-1);
+  size_t last = str.find_last_not_of("\n \t");
+  return (last == string::npos) ? "" : str.substr(0, last + 1);
 }
 
 

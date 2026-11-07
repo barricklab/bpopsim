@@ -79,26 +79,35 @@ Everything later is measured against this.
 - [x] `CLAUDE.md` build section updated. `README` is still empty (Phase 7).
 - [x] Verified: `ctest` golden regression passes with the CMake build.
 
-## Phase 2: Test harness
+## Phase 2: Test harness (done 2026-11-07)
 
-- [ ] Vendor `tests/doctest.h` (pin the version in a header comment) and
-      doctest's `doctest.cmake` for `doctest_discover_tests`.
-- [ ] `tests/CMakeLists.txt`: one `bpopsim_tests` executable from
-      `tests/main.cpp` (`#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN`) plus
-      `test_*.cc` files, linked to `bpopsim_core`.
-- [ ] `tests/test_common.cc`: `split`, `join`, `from_string<double>`,
-      `from_string<vector<double>>` (newline-separated), `to_string(double,
-      precision)`, `substitute`, `chomp` (write the test for the correct
-      behavior; it fails until the off-by-one is fixed).
-- [ ] `tests/test_parameters.cc`: `SimulationParameters` derived values:
-      `transfer_dilution_factor == 2^T`, `binomial_sampling_transfer_probability
-      == 1 / that`, `final_population_size_at_transfer`, category fractions
-      sum to 1, mismatch of `-u`/`-s` counts is rejected. Until Phase 3 this
-      needs a helper that builds an `AnyOption` from a `vector<string>` argv.
+- [x] doctest 2.5.3 vendored unmodified in `tests/third_party/doctest/`
+      (`doctest.h`, `doctest.cmake`, `doctestAddTests.cmake`, `LICENSE.txt`,
+      plus a `README` recording the source tag).
+- [x] `tests/CMakeLists.txt`: `bpopsim_tests` executable from `tests/main.cpp`
+      (`DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN`, defines `g_verbose`) plus
+      `test_*.cc`, linked to `bpopsim_core`, registered per test case with
+      `doctest_discover_tests`.
+- [x] `src/c/bpopsim/options.{h,cc}`: the option table moved out of `main()`
+      into `DefineBpopsimOptions(AnyOption&)` so tests can build the same
+      parser programmatically. Behavior unchanged; golden still passes.
+- [x] `tests/test_common.cc` (15 cases): `split`, `join`, `from_string`,
+      `from_string<vector<double>>` (newline-separated, as AnyOption joins
+      repeated options), `to_string(double, precision)`, `substitute`,
+      `to_upper`/`to_lower`, `chomp`, `dirname`, `regex_m`.
+- [x] `chomp()` off-by-one fixed (`-1` dropped a real character; now handles
+      an all-whitespace string too). It had no callers, so no output change.
+- [x] `tests/test_parameters.cc` (7 cases): defaults, dilution factor and
+      binomial probability from `-T`, category rates/fractions from repeated
+      `-u`/`-s`, `DetermineMutationCategory` sampling proportions over 1e5
+      draws, `-m`/`-1`/`-f` parsing, and `cGenotype::AddOneMutation` under the
+      additive, multiplicative, one-time (`o`), and first-mutation-override
+      models. The `-u`/`-s` count mismatch calls `exit(-1)` so it is not
+      testable until Phase 3 turns it into an exception.
 - [x] Regression test: done in Phase 1 (`tests/golden_test.cmake`).
 - [ ] Add a second golden case in marker-divergence mode (`-k 2`) once the
       `by_color[0]` zero-length array in `TransferResampleDilution` is fixed.
-- [ ] `ctest --test-dir build --output-on-failure` is green.
+- [x] `ctest --test-dir build --output-on-failure`: 23/23 green.
 
 ## Phase 3: Decouple parameters from option parsing
 

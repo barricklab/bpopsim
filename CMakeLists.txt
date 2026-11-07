@@ -34,6 +34,7 @@ set(BPOPSIM_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/c/bpopsim")
 add_library(bpopsim_core STATIC
   "${BPOPSIM_SRC_DIR}/cPopulation.cc"
   "${BPOPSIM_SRC_DIR}/cSubpopulation.cc"
+  "${BPOPSIM_SRC_DIR}/options.cc"
   # Vendored third-party sources (not ours to restyle)
   "${BPOPSIM_SRC_DIR}/anyoption.cpp"
   "${BPOPSIM_SRC_DIR}/icsilog.c"

@@ -15,14 +15,17 @@ work through it one phase at a time.
 ## Repository layout
 
 - `src/c/bpopsim/` C++ core. Our code: `main.cpp`, `cPopulation.{h,cc}`,
-  `cSubpopulation.{h,cc}`, `common.h`.
+  `cSubpopulation.{h,cc}`, `options.{h,cc}` (the command-line option table,
+  shared by `main` and the tests), `common.h`.
 - Vendored third-party code in the same directory, not ours to restyle:
   `tree.hh` / `tree_util.hh` (Kasper Peeters' STL-like n-ary tree, holds the
   genotype ancestry), `anyoption.{h,cpp}` (command-line parser, locally
   modified), `icsilog.{h,c}` (fast log lookup; compiled in but never called).
 - `src/c/bpopsim.1` man page (still the Xcode template, not filled in).
-- `CMakeLists.txt` build; `tests/` holds the CTest golden regression test
-  (`tests/CMakeLists.txt`, `tests/golden_test.cmake`, `tests/golden/`).
+- `CMakeLists.txt` build. `tests/` holds the doctest unit tests
+  (`test_*.cc`, one `TEST_CASE` per CTest entry), the vendored doctest in
+  `tests/third_party/doctest/`, and the golden regression test
+  (`golden_test.cmake`, `golden/`).
 - `binarydist.sh` builds a release tarball with GSL linked statically. On
   macOS it uses the system Apple clang and builds GSL from source as a static
   universal (arm64 + x86_64) archive into `binarydist_build/` (gitignored,
@@ -64,9 +67,15 @@ runtime dependency and it is also a build dependency.
 At least one `--output-*` flag is required or the program prints usage and
 exits. `bpopsim --help` lists all options.
 
-Regression oracle: `ctest` runs `golden_regression`, which executes the
-fixed-seed command recorded in `tests/golden/COMMAND` and requires every
-output file to be byte-identical to `tests/golden/`. Run it after any change.
+Tests: `ctest` runs every doctest `TEST_CASE` in `tests/test_*.cc` as its own
+entry, then `golden_regression`. To run only the unit tests with doctest's own
+reporter: `build/tests/bpopsim_tests` (add `-tc="<name>*"` to filter). New
+tests go in an existing `test_*.cc` or a new one listed in
+`tests/CMakeLists.txt`.
+
+Regression oracle: `golden_regression` executes the fixed-seed command
+recorded in `tests/golden/COMMAND` and requires every output file to be
+byte-identical to `tests/golden/`. Run it after any change.
 Output must stay identical unless the commit says otherwise and regenerates
 the golden files. If running the command by hand in zsh, pass the arguments
 as an array; an unquoted `$ARGS` string is passed as a single word and the
@@ -134,7 +143,6 @@ program falls back to printing usage.
   it when markers are `'r'`/`'w'` (marker-divergence mode only).
 - Seed is read with `from_string<int16_t>` into a `uint16_t`; the default
   `time(NULL) * getpid()` is truncated to 16 bits.
-- `chomp()` in `common.h` drops one character too many.
 - `CalculateSimilarity()` in `cPopulation.cc` is a non-void function with no
   return statement (unreferenced dead code, `-Wreturn-type`).
 - `main()` declares `char* argv_new[argc]`, a variable-length array, which is
@@ -147,8 +155,10 @@ program falls back to printing usage.
   "Need to check output below here" are unreferenced, as is the
   `CONVERT-TREE` subcommand in `main.cpp`.
 - `SimulationParameters`, `OutputParameters`, `cStatistics` take `AnyOption&`
-  in their constructors, so nothing is constructible in a test without a
-  parsed command line.
+  in their constructors. Tests currently build a parser with
+  `DefineBpopsimOptions` and a fake argv (see `tests/test_parameters.cc`);
+  Phase 3 removes the coupling. The `-u`/`-s` count mismatch calls `exit`,
+  so it cannot be unit-tested yet.
 
 ## Uncommitted work
 

@@ -1,0 +1,4 @@
+doctest v2.5.3, single-header C++ testing framework.
+Source: https://github.com/doctest/doctest/tree/v2.5.3
+Files: doctest/doctest.h, scripts/cmake/doctest.cmake, scripts/cmake/doctestAddTests.cmake, LICENSE.txt
+Vendored unmodified on 2026-11-07. To upgrade, replace these files with the same four from a newer tag.
