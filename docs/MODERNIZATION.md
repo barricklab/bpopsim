@@ -273,8 +273,14 @@ Bugs found and fixed along the way (none affect golden output):
       silently ignored), and `--help` exits 0 instead of -1. 11 new tests in
       `tests/test_option_parser.cc`. The vendored `anyoption.{h,cpp}` are
       deleted; `common.h` no longer includes a parser header.
-- [ ] Qualify `std` names in our headers and patch the `using namespace std;`
-      in `tree.hh` (now the only remaining global using-directive).
+- [x] Namespace cleanup (2026-11-07): `tree.hh`'s `using namespace std;`
+      removed and its 20 or so std uses qualified (`allocator`, `size_t`,
+      `bidirectional_iterator_tag`, `queue`, `multiset`, `less`, `equal_to`,
+      `range_error`, `max`). `common.h` rewritten fully qualified.
+      `cSubpopulation.h` carries `using std::map/pair/set/string/vector`
+      inside `namespace bpopsim` for the other headers; `cPopulation.h`
+      qualifies `std::cerr`. No header has a using-directive any more.
+      Golden identical; 56/56 tests.
 - [x] Build warning-free; 44/44 tests; golden identical.
 
 ## Phase 7: Quality of life (done 2026-11-07)

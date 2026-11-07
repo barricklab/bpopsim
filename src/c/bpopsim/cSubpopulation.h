@@ -4,6 +4,13 @@
 
 namespace bpopsim {
 
+  // Standard library names used unqualified throughout the bpopsim headers.
+  using std::map;
+  using std::pair;
+  using std::set;
+  using std::string;
+  using std::vector;
+
   // Predef
   class SimulationParameters;
 

@@ -21,7 +21,9 @@ development log; nothing in it is needed to work on the code.
   GSL wrapper), `common.h` (string helpers).
 - `src/c/third_party/` vendored code, built as a `SYSTEM` include directory
   and excluded from clang-format/clang-tidy: `tree.hh` / `tree_util.hh`
-  (Kasper Peeters' STL-like n-ary tree, holds the genotype ancestry).
+  (Kasper Peeters' STL-like n-ary tree, holds the genotype ancestry;
+  `tree.hh` is locally patched to drop its `using namespace std;` and
+  qualify its std uses).
 - `src/c/bpopsim.1` man page, covering every option and output file. Update
   it together with `options.cc` and the option table in `README.md`.
 - `.github/workflows/build-and-test.yml` builds and runs `ctest` plus a
@@ -170,10 +172,13 @@ program falls back to printing usage.
   files are listed in `.clang-format-ignore`). `.clang-tidy` holds the
   project's check set; run it per file with
   `conda run -p $PWD/env clang-tidy -p build src/c/bpopsim/<file>`.
-- `common.h` helpers are at global scope, and unqualified `std` names in our
-  headers compile only because vendored `tree.hh` has a global
-  `using namespace std;`. Patching that one header and qualifying our own
-  code is the remaining namespace cleanup.
+- No header has a `using namespace` directive. `common.h` helpers are at
+  global scope and fully `std::`-qualified. Inside `namespace bpopsim`,
+  `cSubpopulation.h` carries using-declarations for `map`, `pair`, `set`,
+  `string` and `vector`, which is what lets the other bpopsim headers use
+  those names unqualified; anything else from `std` is written qualified.
+  `.cc` files and tests may `using namespace std;` at file scope. The
+  vendored `tree.hh` is patched to qualify its own `std` uses.
 - `OptionParser::PrintUsage` probes the terminal width with `ioctl` only when
   stdout is a terminal and otherwise uses 80 columns. Keep the `winsize`
   struct zero-initialized and the return value checked.

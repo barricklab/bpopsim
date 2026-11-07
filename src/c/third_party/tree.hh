@@ -32,7 +32,6 @@
 #include <queue>
 #include <algorithm>
 
-using namespace std;
 
 // HP-style construct/destroy have gone from the standard,
 // so here is a copy.
@@ -69,7 +68,7 @@ public:
   T data;
 }; // __attribute__((packed));
 
-template <class T, class tree_node_allocator = allocator<tree_node_<T> > >
+template <class T, class tree_node_allocator = std::allocator<tree_node_<T> > >
 class tree {
 protected:
   typedef tree_node_<T> tree_node;
@@ -100,9 +99,9 @@ public:
       typedef T                               value_type;
       typedef T*                              pointer;
       typedef T&                              reference;
-      typedef size_t                          size_type;
+      typedef std::size_t                     size_type;
       typedef ptrdiff_t                       difference_type;
-      typedef bidirectional_iterator_tag iterator_category;
+      typedef std::bidirectional_iterator_tag iterator_category;
       
       iterator_base();
       iterator_base(tree_node *);
@@ -177,7 +176,7 @@ public:
       breadth_first_queued_iterator&  operator+=(unsigned int);
       
     private:
-      queue<tree_node *> traversal_queue;
+      std::queue<tree_node *> traversal_queue;
 		};
     
 		/// The default iterator types throughout the tree class.
@@ -371,9 +370,9 @@ public:
     void     swap(iterator, iterator);
 		
 		/// Count the total number of nodes.
-		size_t   size() const;
+		std::size_t   size() const;
 		/// Count the total number of nodes below the indicated node (plus one).
-		size_t   size(const iterator_base&) const;
+		std::size_t   size(const iterator_base&) const;
 		/// Check if tree is empty.
 		bool     empty() const;
 		/// Compute the depth to the root or to a fixed other iterator.
@@ -666,10 +665,10 @@ public:
           // try to walk up and then right again
           do {
             if(tmp==ret.top_node)
-              throw range_error("tree: begin_fixed out of range");
+              throw std::range_error("tree: begin_fixed out of range");
             tmp=tmp->parent;
             if(tmp==0) 
-              throw range_error("tree: begin_fixed out of range");
+              throw std::range_error("tree: begin_fixed out of range");
             --curdepth;
           } while(tmp->next_sibling==0);
 				}
@@ -693,7 +692,7 @@ public:
       while(tmp->first_child==0) {
         tmp=tmp->next_sibling;
         if(tmp==0)
-          throw range_error("tree: end_fixed out of range");
+          throw std::range_error("tree: end_fixed out of range");
 			}
       tmp=tmp->first_child;
       ++curdepth;
@@ -1471,7 +1470,7 @@ public:
   template <class T, class tree_node_allocator>
   void tree<T, tree_node_allocator>::sort(sibling_iterator from, sibling_iterator to, bool deep)
 	{
-    less<T> comp;
+    std::less<T> comp;
     sort(from, to, comp, deep);
 	}
   
@@ -1484,7 +1483,7 @@ public:
     // make list of sorted nodes
     // CHECK: if multiset stores equivalent nodes in the order in which they
     // are inserted, then this routine should be called 'stable_sort'.
-    multiset<tree_node *, compare_nodes<StrictWeakOrdering> > nodes(comp);
+    std::multiset<tree_node *, compare_nodes<StrictWeakOrdering> > nodes(comp);
     sibling_iterator it=from, it2=to;
     while(it != to) {
       nodes.insert(it.node);
@@ -1496,7 +1495,7 @@ public:
     // prev and next are the nodes before and after the sorted range
     tree_node *prev=from.node->prev_sibling;
     tree_node *next=it2.node->next_sibling;
-    typename multiset<tree_node *, compare_nodes<StrictWeakOrdering> >::iterator nit=nodes.begin(), eit=nodes.end();
+    typename std::multiset<tree_node *, compare_nodes<StrictWeakOrdering> >::iterator nit=nodes.begin(), eit=nodes.end();
     if(prev==0) {
       if((*nit)->parent!=0) // to catch "sorting the head" situations, when there is no parent
         (*nit)->parent->first_child=(*nit);
@@ -1539,7 +1538,7 @@ public:
   template <typename iter>
   bool tree<T, tree_node_allocator>::equal(const iter& one_, const iter& two, const iter& three_) const
 	{
-    equal_to<T> comp;
+    std::equal_to<T> comp;
     return equal(one_, two, three_, comp);
 	}
   
@@ -1547,7 +1546,7 @@ public:
   template <typename iter>
   bool tree<T, tree_node_allocator>::equal_subtree(const iter& one_, const iter& two_) const
 	{
-    equal_to<T> comp;
+    std::equal_to<T> comp;
     return equal_subtree(one_, two_, comp);
 	}
   
@@ -1598,9 +1597,9 @@ public:
 	}
   
   template <class T, class tree_node_allocator>
-  size_t tree<T, tree_node_allocator>::size() const
+  std::size_t tree<T, tree_node_allocator>::size() const
 	{
-    size_t i=0;
+    std::size_t i=0;
     pre_order_iterator it=begin(), eit=end();
     while(it!=eit) {
       ++i;
@@ -1610,9 +1609,9 @@ public:
 	}
   
   template <class T, class tree_node_allocator>
-  size_t tree<T, tree_node_allocator>::size(const iterator_base& top) const
+  std::size_t tree<T, tree_node_allocator>::size(const iterator_base& top) const
 	{
-    size_t i=0;
+    std::size_t i=0;
     pre_order_iterator it=top, eit=top;
     eit.skip_children();
     ++eit;
@@ -1661,7 +1660,7 @@ public:
 	{
     int maxd=-1;
     for(tree_node *it = head->next_sibling; it!=feet; it=it->next_sibling)
-      maxd=max(maxd, max_depth(it));
+      maxd=std::max(maxd, max_depth(it));
     
     return maxd;
 	}
@@ -1691,7 +1690,7 @@ public:
 			}
       tmp=tmp->first_child;
       ++curdepth;
-      maxdepth=max(curdepth, maxdepth);
+      maxdepth=std::max(curdepth, maxdepth);
 		} 
 	}
   

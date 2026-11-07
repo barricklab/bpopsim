@@ -119,18 +119,20 @@ namespace bpopsim {
 
     void Print() const
     {
-      cerr << "***** Simulation Settings *****" << '\n';
-      cerr << "  Initial population size                  (-p) = " << initial_population_size << '\n';
-      cerr << "  Generations of growth per transfer       (-T) = " << generations_per_transfer << '\n';
-      cerr << "  Transfer dilution                             = " << transfer_dilution_factor << '\n';
-      cerr << "  Population size after transfer           (-N) = " << initial_population_size_after_transfer << '\n';
-      cerr << "  Population size at transfer                   = " << final_population_size_at_transfer << '\n';
-      cerr << "  Mutation rates per division              (-u) = " << to_string(mutation_rates_per_division) << '\n';
-      cerr << "  Mutation fitness effects                 (-s) = " << to_string(mutation_fitness_effects) << '\n';
-      cerr << "  Mutation fitness effect model            (-f) = " << mutation_fitness_effect_model << '\n';
-      cerr << "  Initial mutation fitness effects         (-1) = "
-           << substitute(first_mutation_fitness_effects_string, "\n", ",") << '\n';
-      cerr << "  Average fitness end condition (0=OFF)         = " << average_fitness_end_condition << '\n';
+      std::cerr << "***** Simulation Settings *****" << '\n';
+      std::cerr << "  Initial population size                  (-p) = " << initial_population_size << '\n';
+      std::cerr << "  Generations of growth per transfer       (-T) = " << generations_per_transfer << '\n';
+      std::cerr << "  Transfer dilution                             = " << transfer_dilution_factor << '\n';
+      std::cerr << "  Population size after transfer           (-N) = " << initial_population_size_after_transfer
+                << '\n';
+      std::cerr << "  Population size at transfer                   = " << final_population_size_at_transfer << '\n';
+      std::cerr << "  Mutation rates per division              (-u) = " << to_string(mutation_rates_per_division)
+                << '\n';
+      std::cerr << "  Mutation fitness effects                 (-s) = " << to_string(mutation_fitness_effects) << '\n';
+      std::cerr << "  Mutation fitness effect model            (-f) = " << mutation_fitness_effect_model << '\n';
+      std::cerr << "  Initial mutation fitness effects         (-1) = "
+                << substitute(first_mutation_fitness_effects_string, "\n", ",") << '\n';
+      std::cerr << "  Average fitness end condition (0=OFF)         = " << average_fitness_end_condition << '\n';
     }
 
     uint32_t DetermineMutationCategory(RandomGenerator& rng)
