@@ -47,20 +47,18 @@ set(BPOPSIM_THIRD_PARTY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/c/third_party")
 add_library(bpopsim_core STATIC
   "${BPOPSIM_SRC_DIR}/cPopulation.cc"
   "${BPOPSIM_SRC_DIR}/cSubpopulation.cc"
+  "${BPOPSIM_SRC_DIR}/option_parser.cc"
   "${BPOPSIM_SRC_DIR}/options.cc"
   "${BPOPSIM_SRC_DIR}/random.cc"
-  # Vendored third-party source (tree.hh and tree_util.hh are header-only)
-  "${BPOPSIM_THIRD_PARTY_DIR}/anyoption.cpp"
 )
 target_include_directories(bpopsim_core PUBLIC "${BPOPSIM_SRC_DIR}")
-# SYSTEM so warnings inside the vendored headers are not reported against our code.
+# Vendored header-only tree.hh / tree_util.hh. SYSTEM so warnings inside them
+# are not reported against our code.
 target_include_directories(bpopsim_core SYSTEM PUBLIC "${BPOPSIM_THIRD_PARTY_DIR}")
 target_link_libraries(bpopsim_core PUBLIC GSL::gsl GSL::gslcblas)
 target_compile_options(bpopsim_core PRIVATE
   $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang,GNU>:-Wall -Wextra>
 )
-# Silence warnings inside the vendored source file only.
-set_source_files_properties("${BPOPSIM_THIRD_PARTY_DIR}/anyoption.cpp" PROPERTIES COMPILE_OPTIONS "-w")
 
 add_executable(bpopsim "${BPOPSIM_SRC_DIR}/main.cpp")
 target_link_libraries(bpopsim PRIVATE bpopsim_core)

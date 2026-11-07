@@ -263,12 +263,18 @@ Bugs found and fixed along the way (none affect golden output):
       has the same directive, so patching `tree.hh` alone changes nothing,
       and qualifying ~1,500 lines of vendored parser is not worth it. This
       falls out of the optional `AnyOption` replacement below.
-- [ ] Optional: replace `AnyOption` (1,200 lines, `char*` buffers, macro
-      constants, the `ioctl` width probe) with a ~200-line `OptionParser`
-      supporting long/short names, flags, repeatable options, and usage text.
-      Since Phase 3 the swap touches only `options.cc`, `main.cpp`, and the
-      `ParsedOptions` test helper. Then qualify `std` names in our headers and
-      drop the global using-directives.
+- [x] `AnyOption` replaced (2026-11-07) by `option_parser.{h,cc}`, ~260 lines:
+      long/short names, flags, `--long=value`, `-svalue`, combined `-abc`,
+      repeated options joined with `"\n"`, defaults formatted via
+      `ostringstream` exactly as before (golden unchanged), two-column wrapped
+      usage. Errors throw `std::invalid_argument` instead of calling `exit`;
+      `main` reports them with the usage text. Behavior changes: a missing
+      option value and a stray positional argument are now errors (both were
+      silently ignored), and `--help` exits 0 instead of -1. 11 new tests in
+      `tests/test_option_parser.cc`. The vendored `anyoption.{h,cpp}` are
+      deleted; `common.h` no longer includes a parser header.
+- [ ] Qualify `std` names in our headers and patch the `using namespace std;`
+      in `tree.hh` (now the only remaining global using-directive).
 - [x] Build warning-free; 44/44 tests; golden identical.
 
 ## Phase 7: Quality of life (done 2026-11-07)

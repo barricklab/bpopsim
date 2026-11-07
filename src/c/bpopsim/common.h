@@ -1,8 +1,6 @@
 #pragma once
 
 // Shared includes and small string/number helpers used throughout bpopsim.
-// Everything here is at global scope because the vendored anyoption.h (included
-// at the bottom) relies on split() and to_string().
 
 #include <cassert>
 #include <cerrno>
@@ -25,9 +23,8 @@
 #include <vector>
 
 // Vendored third-party headers (src/c/third_party, a SYSTEM include directory).
-// tree.hh and anyoption.h both have `using namespace std;` at global scope, which
-// is what lets this file and the headers that include it use unqualified std
-// names. That goes away only when anyoption is replaced (see docs/MODERNIZATION.md).
+// tree.hh has `using namespace std;` at global scope, which is what lets this
+// file and the headers that include it use unqualified std names.
 #include "tree.hh"
 #include "tree_util.hh"
 #include "random.h"
@@ -191,6 +188,3 @@ inline string create_path(const string& path)
   }
   return path;
 }
-
-// Must be included last because it relies on these functions
-#include "anyoption.h"

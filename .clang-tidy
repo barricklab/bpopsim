@@ -26,7 +26,7 @@ Checks: >
   -bugprone-narrowing-conversions,
   -bugprone-branch-clone
 WarningsAsErrors: ''
-HeaderFilterRegex: 'src/c/bpopsim/(cPopulation|cSubpopulation|common|options|random)\.h$'
+HeaderFilterRegex: 'src/c/bpopsim/(cPopulation|cSubpopulation|common|option_parser|options|random)\.h$'
 FormatStyle: file
 CheckOptions:
   readability-identifier-naming.NamespaceCase: lower_case

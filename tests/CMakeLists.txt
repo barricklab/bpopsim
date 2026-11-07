@@ -4,6 +4,7 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/third_party/doctest/doctest.cmake")
 add_executable(bpopsim_tests
   main.cpp
   test_common.cc
+  test_option_parser.cc
   test_parameters.cc
   test_population.cc
   test_random.cc

@@ -1,5 +1,6 @@
 #include "common.h"
 #include "cPopulation.h"
+#include "option_parser.h"
 #include "options.h"
 #include "random.h"
 
@@ -8,14 +9,22 @@ using namespace std;
 
 int bpopsim_default_action(int argc, char* argv[])
 {
-  AnyOption options("Usage Example: bpopsim -T 6.64 -n 50 -i");
+  OptionParser options("Usage: bpopsim [options] --output-KIND [--output-KIND ...]");
   DefineBpopsimOptions(options);
-  options.processCommandArgs(argc, argv);
+
+  try {
+    options.Parse(argc, argv);
+  } catch (const std::invalid_argument& e) {
+    options.AddUsage("");
+    options.AddUsage(e.what());
+    options.PrintUsage();
+    return -1;
+  }
 
   // Print help if requested.
   if (options.count("help")) {
-    options.printUsage();
-    return -1;
+    options.PrintUsage();
+    return 0;
   }
 
   // Require one output option
@@ -24,9 +33,9 @@ int bpopsim_default_action(int argc, char* argv[])
       !options.count("output-diverged-frequencies") && !options.count("output-longest-sweep-time") &&
       !options.count("output-muller")) {
 
-    options.addUsage("");
-    options.addUsage("You must provide at least one output option.");
-    options.printUsage();
+    options.AddUsage("");
+    options.AddUsage("You must provide at least one output option.");
+    options.PrintUsage();
     return -1;
   }
 
@@ -38,9 +47,9 @@ int bpopsim_default_action(int argc, char* argv[])
   try {
     simulation_parameters.Validate();
   } catch (const std::invalid_argument& e) {
-    options.addUsage("");
-    options.addUsage(e.what());
-    options.printUsage();
+    options.AddUsage("");
+    options.AddUsage(e.what());
+    options.PrintUsage();
     return -1;
   }
 

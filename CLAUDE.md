@@ -15,13 +15,13 @@ development log; nothing in it is needed to work on the code.
 ## Repository layout
 
 - `src/c/bpopsim/` C++ core, all ours: `main.cpp`, `cPopulation.{h,cc}`,
-  `cSubpopulation.{h,cc}`, `options.{h,cc}` (the command-line option table
-  and the `Parse*` functions, shared by `main` and the tests),
-  `random.{h,cc}` (the GSL wrapper), `common.h` (string helpers).
+  `cSubpopulation.{h,cc}`, `option_parser.{h,cc}` (small GNU/POSIX style
+  command-line parser), `options.{h,cc}` (the bpopsim option table and the
+  `Parse*` functions, shared by `main` and the tests), `random.{h,cc}` (the
+  GSL wrapper), `common.h` (string helpers).
 - `src/c/third_party/` vendored code, built as a `SYSTEM` include directory
   and excluded from clang-format/clang-tidy: `tree.hh` / `tree_util.hh`
-  (Kasper Peeters' STL-like n-ary tree, holds the genotype ancestry) and
-  `anyoption.{h,cpp}` (command-line parser, locally modified).
+  (Kasper Peeters' STL-like n-ary tree, holds the genotype ancestry).
 - `src/c/bpopsim.1` man page, covering every option and output file. Update
   it together with `options.cc` and the option table in `README.md`.
 - `.github/workflows/build-and-test.yml` builds and runs `ctest` plus a
@@ -87,16 +87,23 @@ program falls back to printing usage.
 
 ## Architecture
 
-- `main.cpp`: parses the command line with `AnyOption` (option table in
+- `main.cpp`: parses the command line with `OptionParser` (option table in
   `options.cc`), converts it into `SimulationParameters`, `OutputParameters`
   and `MarkerDivergence` via the `Parse*` functions in `options.cc`, calls
-  `Validate()`, builds one `gsl_rng` seeded once for the whole execution,
-  loops over replicates constructing a fresh `cPopulation` from the structs
-  each time, then writes per-replicate and summary outputs.
+  `Validate()`, builds one `RandomGenerator` seeded once for the whole
+  execution, loops over replicates constructing a fresh `cPopulation` from
+  the structs each time, then writes per-replicate and summary outputs.
+  Parse errors and validation errors are `std::invalid_argument`; `main`
+  prints the message with the usage text and returns -1. `--help` returns 0.
+- `OptionParser` (`option_parser.h`): accepts `--long value`, `--long=value`,
+  `-s value`, `-svalue`, and combined flags `-abc`. Repeated options join
+  their values with `"\n"`, which `from_string<vector<T>>` reads; that is how
+  `-u`/`-s` categories reach `SimulationParameters`. Flags report `"true"`.
+  Unknown options, missing values, and positional arguments are errors.
 - Parameter structs (`cPopulation.h`): plain data with defaults equal to the
   command-line defaults. `SimulationParameters::Finalize()` computes derived
   values (dilution factor, binomial probability, category fractions); call it
-  after changing inputs. Only `options.cc` touches `AnyOption`, so tests
+  after changing inputs. Only `options.cc` touches `OptionParser`, so tests
   construct the structs directly.
 - `cPopulation` (`cPopulation.h`): owns copies of the three parameter
   structs, a `vector<cSubpopulation>` of currently living genotypes with
@@ -163,16 +170,13 @@ program falls back to printing usage.
   files are listed in `.clang-format-ignore`). `.clang-tidy` holds the
   project's check set; run it per file with
   `conda run -p $PWD/env clang-tidy -p build src/c/bpopsim/<file>`.
-- `common.h` helpers are at global scope because the vendored `anyoption.h`
-  uses `split()` and `to_string()`. Unqualified `std` names compile only
-  because vendored `tree.hh` and `anyoption.h` each have a global
-  `using namespace std;`. Qualifying our own code waits on replacing
-  `AnyOption`.
-- `AnyOption::init()` probes the terminal width with `ioctl` and falls back
-  to 80 columns when stdin is not a terminal. Keep the `winsize` struct
-  zero-initialized and the return value checked, and keep `word_wrap()` from
-  ever moving its cursor backwards; either regression makes option parsing
-  hang in non-interactive runs.
+- `common.h` helpers are at global scope, and unqualified `std` names in our
+  headers compile only because vendored `tree.hh` has a global
+  `using namespace std;`. Patching that one header and qualifying our own
+  code is the remaining namespace cleanup.
+- `OptionParser::PrintUsage` probes the terminal width with `ioctl` only when
+  stdout is a terminal and otherwise uses 80 columns. Keep the `winsize`
+  struct zero-initialized and the return value checked.
 
 ## Known issues
 

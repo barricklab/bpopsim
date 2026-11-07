@@ -14,7 +14,7 @@ using namespace bpopsim;
 
 namespace {
 
-  // Build an AnyOption exactly as main() does and parse the given arguments.
+  // Build an OptionParser exactly as main() does and parse the given arguments.
   struct ParsedOptions
   {
     explicit ParsedOptions(const vector<string>& args)
@@ -24,12 +24,13 @@ namespace {
       for (const string& a : args) argv_storage.push_back(a);
       for (string& a : argv_storage) argv.push_back(const_cast<char*>(a.c_str()));
       DefineBpopsimOptions(options);
-      options.processCommandArgs(static_cast<int>(argv.size()), argv.data());
+      argv.push_back(nullptr);
+      options.Parse(static_cast<int>(argv_storage.size()), argv.data());
     }
 
     vector<string> argv_storage;
     vector<char*> argv;
-    AnyOption options;
+    OptionParser options;
   };
 
 }  // namespace

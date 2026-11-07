@@ -59,7 +59,7 @@ TEST_CASE("from_string parses numbers including scientific notation")
 
 TEST_CASE("from_string<vector<double>> reads newline-separated values")
 {
-  // AnyOption joins repeated options with "\n"; this is how -u/-s categories
+  // OptionParser joins repeated options with "\n"; this is how -u/-s categories
   // reach SimulationParameters.
   vector<double> v = from_string<vector<double>>("1E-7\n2E-7");
   REQUIRE(v.size() == 2);
