@@ -70,3 +70,57 @@ void DefineBpopsimOptions(AnyOption& options)
 }
 
 }
+
+namespace bpopsim {
+
+SimulationParameters ParseSimulationParameters(AnyOption& options)
+{
+  SimulationParameters p;
+  p.maximum_number_of_transfers = from_string<uint32_t>(options["number-of-transfers"]);
+  p.initial_population_size = from_string<double>(options["initial-population-size"]);
+  p.initial_population_size_after_transfer = from_string<double>(options["population-size-after-transfer"]);
+  p.generations_per_transfer = from_string<double>(options["generations-per-transfer"]);
+
+  p.initial_fitness = from_string<double>(options["initial-fitness"]);
+  p.multiplicative_fitness_effects = options.count("multiplicative-fitness");
+  p.mutation_rates_per_division = from_string<vector<double> >(options["mutation-rates"]);
+  p.mutation_fitness_effects = from_string<vector<double> >(options["fitness-effects"]);
+  p.mutation_fitness_effect_model = options["fitness-effect-model"];
+
+  p.average_fitness_end_condition = from_string<double>(options["average-fitness-end-condition"]);
+
+  if (options.count("first-mutation-fitness-effects")) {
+    p.first_mutation_fitness_effects = from_string<vector<double> >(options["first-mutation-fitness-effects"]);
+    p.first_mutation_fitness_effects_string = options["first-mutation-fitness-effects"];
+  }
+
+  p.Finalize();
+  return p;
+}
+
+OutputParameters ParseOutputParameters(AnyOption& options)
+{
+  OutputParameters p;
+  p.output_directory_name = options["output-folder"];
+  p.coarse_graining = from_string<uint32_t>(options["coarse-graining"]);
+  p.burn_in = from_string<uint32_t>(options["burn-in"]);
+  p.diverged_mutation_depth = from_string<uint32_t>(options["diverged-mutation-depth"]);
+  p.output_diverged_frequencies = options.count("output-diverged-frequencies");
+  p.minimum_output_frequency = from_string<double>(options["minimum-output-frequency"]);
+  p.output_largest_sweep_size = options.count("output-largest-sweep-size");
+  p.output_longest_sweep_time = options.count("output-longest-sweep-time");
+  p.verbose = options.count("verbose");
+  p.debug = options.count("debug");
+  return p;
+}
+
+MarkerDivergence ParseMarkerDivergence(AnyOption& options)
+{
+  MarkerDivergence p;
+  p.marker_states = from_string<uint32_t>(options["marker-states"]);
+  p.max_divergence_factor = from_string<double>(options["max-marker-divergence-ratio"]);
+  p.transfer_interval_to_print = from_string<double>(options["transfer-interval-to-print"]);
+  return p;
+}
+
+}

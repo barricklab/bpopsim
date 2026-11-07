@@ -42,15 +42,37 @@ namespace bpopsim {
     
   };
   
+  // Options controlling what is recorded and written, plus run-time switches.
+  // Plain data with defaults matching the command-line defaults in options.cc;
+  // filled from the command line by ParseOutputParameters().
+  struct OutputParameters {
+    string   output_directory_name = ".";
+    uint32_t coarse_graining = 1;
+    int32_t  burn_in = 0;                       // Number of transfers to perform before recording output
+    uint32_t diverged_mutation_depth = 10;
+    bool     output_diverged_frequencies = false;
+    bool     output_largest_sweep_size = false;
+    bool     output_longest_sweep_time = false;
+    double   minimum_output_frequency = 0.01;
+    bool     verbose = false;                   // Print step-by-step details of the run (-v)
+    bool     debug = false;                     // Perform extra consistency checks (--debug)
+  };
+
+  // Options for marker-divergence mode (-k). Filled by ParseMarkerDivergence().
+  struct MarkerDivergence {
+    bool   marker_states = false;
+    double max_divergence_factor = 100;
+    double transfer_interval_to_print = 1;
+  };
+
   // Statistics across all runs
   struct cStatistics : vector<cReplicateStatistics> {
 
-    cStatistics(AnyOption& options)
-    {
-      output_directory_name = options["output-folder"];
-      coarse_graining = from_string<uint32_t>(options["coarse-graining"]);
-    }
-    
+    explicit cStatistics(const OutputParameters& output_parameters)
+    : output_directory_name(output_parameters.output_directory_name)
+    , coarse_graining(output_parameters.coarse_graining)
+    { }
+
     void OutputAveragePopulationFitness();
     void OutputAveragePopulationMutationCounts();
     void OutputDivergedFrequenciesByDepth();
@@ -61,78 +83,46 @@ namespace bpopsim {
     uint32_t coarse_graining;   // Only used for calculating statistics and ignoring intermediate time points
 
   };
-  
-  
+
+
+  // Parameters of the evolutionary model. Plain data with defaults matching the
+  // command-line defaults in options.cc. Set the input fields, then call
+  // Finalize() to compute the derived fields (ParseSimulationParameters() does
+  // both from a parsed command line).
   class SimulationParameters {
-    
+
   public:
-    // Sort function
-    bool by_numerical_value (double i, double j) { return (i<j); }
-    
-    SimulationParameters(AnyOption& options, gsl_rng* rng)
-    { 
-      // Populate input values
-      maximum_number_of_transfers = from_string<uint32_t>(options["number-of-transfers"]);
-      initial_population_size = from_string<double>(options["initial-population-size"]);
-      initial_population_size_after_transfer = from_string<double>(options["population-size-after-transfer"]);
-      generations_per_transfer = from_string<double>(options["generations-per-transfer"]);
-      
-      initial_fitness = from_string<double>(options["initial-fitness"]);
-      multiplicative_fitness_effects = options.count("multiplicative-fitness");
-      mutation_rates_per_division = from_string<vector<double> >(options["mutation-rates"]);
-      mutation_fitness_effects = from_string<vector<double> >(options["fitness-effects"]);
-      mutation_fitness_effect_model = options["fitness-effect-model"];
-      
-      average_fitness_end_condition = from_string<double>(options["average-fitness-end-condition"]);
-      
+    SimulationParameters() { Finalize(); }
+
+    //! Throws std::invalid_argument if the inputs are inconsistent.
+    void Validate() const
+    {
       if (mutation_rates_per_division.size() != mutation_fitness_effects.size()) {
-        
-        options.addUsage("");
-        options.addUsage("The number of mutation rates (-u) is not the same as the number of fitness effects (-s).");
-        options.printUsage();
-        exit(-1);
+        throw std::invalid_argument("The number of mutation rates (-u) is not the same as the number of fitness effects (-s).");
       }
-      
-      if (options.count("first-mutation-fitness-effects")) {
-        first_mutation_fitness_effects = from_string<vector< double > >(options["first-mutation-fitness-effects"]);
-        first_mutation_fitness_effects_string = options["first-mutation-fitness-effects"]; 
-      }
-      
-      // Populate calculated values
+    }
+
+    //! Compute the derived fields from the input fields. Call after changing any input.
+    void Finalize()
+    {
       transfer_dilution_factor = exp(log(2) * generations_per_transfer);
       final_population_size_at_transfer = transfer_dilution_factor * initial_population_size_after_transfer;
       binomial_sampling_transfer_probability = 1.0 / transfer_dilution_factor;
-      
+
       // Sum mutation rates
       total_mutation_rate_per_division = 0;
       for(vector<double>::iterator it=mutation_rates_per_division.begin(); it!=mutation_rates_per_division.end(); it++)
         total_mutation_rate_per_division += *it;
-      
+
       total_mutation_rate_exponential_mean = 1.0 / total_mutation_rate_per_division;
-      
+
       // Fill in the fractional table for deciding which category mutations belong in.
-      double on_mutation_rate_per_division = 0;
+      fractional_chances_of_mutation_categories.clear();
       for(vector<double>::iterator it=mutation_rates_per_division.begin(); it!=mutation_rates_per_division.end(); it++) {
-        on_mutation_rate_per_division = *it;
-        fractional_chances_of_mutation_categories.push_back(on_mutation_rate_per_division/total_mutation_rate_per_division);
+        fractional_chances_of_mutation_categories.push_back(*it/total_mutation_rate_per_division);
       }
-      
-      // Exact mutation number - may want to implement within transfer loop, so divisions change. This way now for MA usage.
-      /*
-       exact_mutations_per_transfer = from_string<uint32_t>(options["exact-mutations-per-transfer"]);        
-       double total_divisions_per_transfer = final_population_size_per_transfer - initial_population_size_per_transfer;
-       for(uint32_t i=0; i<exact_mutations_per_transfer; i++) {
-       double division_of_mutation = (double) trunc(gsl_rng_uniform_int(rng, total_divisions_per_transfer));
-       exact_mutation_at_division.push_back( division_of_mutation );
-       }
-       sort(exact_mutation_at_division.begin(), exact_mutation_at_division.end());
-       sort(exact_mutation_at_division.begin(), exact_mutation_at_division.end(), by_numerical_value);
-       
-       //exact_mutations_until_division.push_back( division_of_mutation );
-       */
-      
     }
-    
+
     void Print() {
       cerr << "***** Simulation Settings *****" << endl;
       cerr << "  Initial population size                  (-p) = " << initial_population_size << endl;
@@ -165,85 +155,37 @@ namespace bpopsim {
     }
     
     // Input
-    double maximum_number_of_transfers;               // Maximum number of transfers before ending simulation. May end earlier for other reasons.
-    double initial_population_size;                   // Initial population size at the beginning of the simulation
-    double initial_population_size_after_transfer;    // Initial population size after transfer dilution
-    double generations_per_transfer;                  // Number of binary cell divisions per transfer
-    
-    double initial_fitness;                           // Fitness of cells at the beginning of the simulation
-    bool multiplicative_fitness_effects;              // Multiply rather than add selection coefficients *(1+s) versus +s
-    vector<double> mutation_rates_per_division;       // Rate per cell division of mutations in each category
-    vector<double> mutation_fitness_effects;          // Effect of mutations in each category = selection coefficient for uniform model 
-    string mutation_fitness_effect_model;             // Model for drawing fitness effects: 'u' = uniform NOT FULLY IMPLEMENTED
+    double maximum_number_of_transfers = 50;          // Maximum number of transfers before ending simulation. May end earlier for other reasons.
+    double initial_population_size = 5E6;             // Initial population size at the beginning of the simulation
+    double initial_population_size_after_transfer = 5E6; // Initial population size after transfer dilution
+    double generations_per_transfer = 6.64;           // Number of binary cell divisions per transfer
+
+    double initial_fitness = 1.0;                     // Fitness of cells at the beginning of the simulation
+    bool multiplicative_fitness_effects = false;      // Multiply rather than add selection coefficients *(1+s) versus +s
+    vector<double> mutation_rates_per_division = {1E-7}; // Rate per cell division of mutations in each category
+    vector<double> mutation_fitness_effects = {0.1};  // Effect of mutations in each category = selection coefficient for uniform model
+    string mutation_fitness_effect_model = "u";       // Model for drawing fitness effects: 'u' uniform, 'e' exponential, 'o' one-time
     vector<double> first_mutation_fitness_effects;    // Fitness effects of initial mutations (overrides other options)
     string first_mutation_fitness_effects_string;     //   string version of previous for printing
-    double average_fitness_end_condition;             // End replicate when average fitness is this or greater
-    
-    // Calculated from Input 
+    double average_fitness_end_condition = 0;         // End replicate when average fitness is this or greater (0 = off)
+
+    // Calculated from Input by Finalize()
     double transfer_dilution_factor;                  // The transfer dilution fraction
     double final_population_size_at_transfer;         // Final population size that triggers a transfer
     double binomial_sampling_transfer_probability;    // Probability for binomial sampling
     double total_mutation_rate_exponential_mean;              // Mean for Poisson draws of divisions until next mut
     double total_mutation_rate_per_division;                  // Sum of all mutation rates
     vector<double> fractional_chances_of_mutation_categories; // Fraction of mutations in each category
-    
-    /* Finish re-implementing
-     uint32_t exact_mutations_per_transfer;             // Exact number of mutations to uniformly distribute during transfer
-     vector<double> exact_mutation_at_division;
-     vector<double> exact_mutation_next_division_interval;
-     */
   };
-    
+
   class cPopulation {
 
   private:
-    
-    // Simulation parameters that should be arguments
-    // Initialized outside of constructor
-    
+
     SimulationParameters simulation_parameters;
-    
-    struct OutputParameters {
-      
-      OutputParameters(AnyOption& options)
-      {
-        output_directory_name = options["output-folder"];
-        coarse_graining = from_string<uint32_t>(options["coarse-graining"]);
-        burn_in = from_string<uint32_t>(options["burn-in"]);
-        diverged_mutation_depth = from_string<uint32_t>(options["diverged-mutation-depth"]);
-        output_diverged_frequencies = options.count("output-diverged-frequencies");
-        minimum_output_frequency = from_string<double>(options["minimum-output-frequency"]);
-        output_largest_sweep_size = options.count("output-largest-sweep-size");
-        output_longest_sweep_time = options.count("output-longest-sweep-time");
-      }
-      
-      string output_directory_name;
-      uint32_t coarse_graining;
-      int32_t burn_in;            // Number of transfers to perform before recording output
-      uint32_t diverged_mutation_depth;
-      bool output_diverged_frequencies;
-      bool output_largest_sweep_size;
-      bool output_longest_sweep_time;
-      double minimum_output_frequency;
+    OutputParameters output_parameters;
+    MarkerDivergence marker_divergence;
 
-    } output_parameters;
-    
-    struct MarkerDivergence {
-      
-      MarkerDivergence(AnyOption& options)
-      { 
-        // Populate input values
-        marker_states = from_string<uint32_t>(options["marker-states"]);
-        max_divergence_factor = from_string<double>(options["max-marker-divergence-ratio"]);
-        transfer_interval_to_print = from_string<double>(options["transfer-interval-to-print"]);
-      }
-      
-      bool marker_states;
-      double max_divergence_factor; 
-      double transfer_interval_to_print;
-
-    } marker_divergence;
-  
   public:
     cReplicateStatistics replicate_statistics;
 
@@ -285,9 +227,12 @@ namespace bpopsim {
     
   public:
 
-    //CONSTRUCTOR  
-    cPopulation();
-    cPopulation(AnyOption& options, gsl_rng* in_rng, uint32_t in_replicate);
+    //CONSTRUCTOR
+    cPopulation(const SimulationParameters& in_simulation_parameters,
+                const OutputParameters& in_output_parameters,
+                const MarkerDivergence& in_marker_divergence,
+                gsl_rng* in_rng,
+                uint32_t in_replicate);
     
     //DESTRUCTOR
     virtual ~cPopulation() { };

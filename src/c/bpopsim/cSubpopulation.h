@@ -89,10 +89,11 @@ namespace bpopsim {
                          const string& in_type_of_mutation, 
                          gsl_rng * randomgenerator);  
     virtual bool CreateDescendant(gsl_rng * randomgenerator,
-                                  cSubpopulation &ancestor, 
-                                  SimulationParameters& simulation_parameters, 
-                                  tree<cGenotype>& in_tree, 
-                                  uint32_t node_id);
+                                  cSubpopulation &ancestor,
+                                  SimulationParameters& simulation_parameters,
+                                  tree<cGenotype>& in_tree,
+                                  uint32_t node_id,
+                                  bool verbose = false);
     
     virtual void AddToTree(tree<cGenotype>& in_tree,
                            tree<cGenotype>::iterator parent,

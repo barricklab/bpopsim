@@ -5,8 +5,6 @@
 using namespace bpopsim;
 using namespace std;
 
-bool g_verbose;
-
 gsl_rng* initialize_random_number_generator(uint16_t& seed)
 {
   const gsl_rng_type *T;
@@ -51,24 +49,32 @@ int bpopsim_default_action(int argc, char* argv[])
 		return -1;
   }
   
+  // Convert the command line into parameter structs; everything downstream uses these.
+  SimulationParameters simulation_parameters = ParseSimulationParameters(options);
+  OutputParameters output_parameters = ParseOutputParameters(options);
+  MarkerDivergence marker_divergence = ParseMarkerDivergence(options);
+
+  try {
+    simulation_parameters.Validate();
+  } catch (const std::invalid_argument& e) {
+    options.addUsage("");
+    options.addUsage(e.what());
+    options.printUsage();
+    return -1;
+  }
+
   // Create output directory
-  create_path(options["output-folder"]);
-  
-  g_verbose = options.count("verbose");
+  create_path(output_parameters.output_directory_name);
 
   // Use one main random number generator for entire program (don't reset for each replicate)
   uint16_t rng_seed = from_string<int16_t>(options["rng-seed"]);
   gsl_rng* rng = initialize_random_number_generator(rng_seed);
-        
+
   uint32_t replicates = from_string<uint32_t>(options["replicates"]);
-    
-  // This is just to display settings
-  {
-    cPopulation population(options, rng, 0);
-    population.DisplayParameters();
-  }
-  
-  cStatistics final_statistics(options);
+
+  simulation_parameters.Print();
+
+  cStatistics final_statistics(output_parameters);
   
   cout << endl << "***** Beginning Simulations *****" << endl;
   cout << "(Random number generator seed = " << rng_seed << ")" << endl;
@@ -76,7 +82,7 @@ int bpopsim_default_action(int argc, char* argv[])
   for (uint32_t on_replicate=1; on_replicate <= replicates; on_replicate++)
   {
     //Initialize Population object
-    cPopulation population(options, rng, on_replicate);
+    cPopulation population(simulation_parameters, output_parameters, marker_divergence, rng, on_replicate);
     
     // Perform Simulation
     population.RunSimulation();

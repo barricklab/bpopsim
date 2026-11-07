@@ -109,26 +109,45 @@ Everything later is measured against this.
       `by_color[0]` zero-length array in `TransferResampleDilution` is fixed.
 - [x] `ctest --test-dir build --output-on-failure`: 23/23 green.
 
-## Phase 3: Decouple parameters from option parsing
+## Phase 3: Decouple parameters from option parsing (done 2026-11-07)
 
 Biggest structural win. Makes the simulator constructible in tests.
 
-- [ ] Give `SimulationParameters`, `OutputParameters`, `MarkerDivergence`,
-      `cStatistics` default member initializers and no `AnyOption&` ctor.
-- [ ] Move derived-value computation into `SimulationParameters::finalize()`
-      (dilution factor, binomial p, total rate, category fractions).
-- [ ] Add `options.h/.cc` with `parse_simulation_parameters(const AnyOption&)`,
-      `parse_output_parameters(...)`, `parse_marker_divergence(...)`. Move the
-      `-u`/`-s` count check into `validate()` throwing `std::invalid_argument`;
-      `main` catches, prints the message and usage, returns nonzero.
-- [ ] Replace global `g_verbose` with `OutputParameters::verbose` passed to
-      what needs it. Keep output identical.
-- [ ] `tests/test_population.cc`: construct `cPopulation` from parameter
-      structs and a seeded rng; run N transfers; assert population size stays
-      within `[N_after_transfer, N_at_transfer]`, genotype counts are
-      consistent, and `CalculatePopulationSize()` equals the tracked
-      `current_population_size` (what the `--debug` asserts check today).
-- [ ] Golden test still byte-identical.
+- [x] `SimulationParameters`, `OutputParameters`, `MarkerDivergence` are plain
+      structs with default member initializers equal to the command-line
+      defaults, no `AnyOption&` constructors. `OutputParameters` and
+      `MarkerDivergence` moved from private nested types of `cPopulation` to
+      namespace scope. `cStatistics` takes `const OutputParameters&`.
+- [x] `SimulationParameters::Finalize()` computes the derived fields
+      (dilution factor, binomial p, total rate, category fractions) and can be
+      re-run after changing inputs. The default constructor calls it.
+- [x] `SimulationParameters::Validate()` throws `std::invalid_argument` on a
+      `-u`/`-s` count mismatch. `main` catches it, appends the message to the
+      usage text, prints usage, returns -1 (same exit code as before).
+- [x] `options.{h,cc}`: `ParseSimulationParameters`, `ParseOutputParameters`,
+      `ParseMarkerDivergence` are the only code that reads `AnyOption` values.
+      `cPopulation` is constructed from the three structs plus rng and
+      replicate number. `main` prints settings with
+      `simulation_parameters.Print()` instead of constructing a throwaway
+      `cPopulation`.
+- [x] Global `g_verbose` removed. `OutputParameters::verbose` and `::debug`
+      replace it; `cSubpopulation::CreateDescendant` takes a `verbose`
+      argument. Output identical.
+- [x] `tests/test_parameters.cc` rewritten (11 cases): direct construction,
+      `Finalize` re-run, `Validate` throwing, parse functions for all three
+      structs including `-v`/`--debug`/`-k`/`-x`/`-t`, category sampling,
+      `AddOneMutation` models, child inheritance.
+- [x] `tests/test_population.cc` (8 cases) runs `cPopulation` end to end with
+      `debug` on (internal population-size asserts active): record counts,
+      fitness monotone and starting at initial fitness, genotype frequencies
+      summing to one, ancestral clade at frequency one, mutations accumulate,
+      same seed reproduces and different seed differs, fitness end condition,
+      burn-in and coarse-graining record counts.
+- [x] Golden test still byte-identical. 36/36 tests green.
+
+Learned while testing: burn-in transfers are performed in addition to `-n`;
+the run continues until the transfer counter (which starts at `-burn_in`)
+reaches `-n`, so `-n 6 -b 3` performs 9 transfers and records 0..6.
 
 ## Phase 4: Isolate GSL behind `RandomGenerator`
 

@@ -5,10 +5,15 @@ using namespace bpopsim;
 using namespace std;
 
 
-cPopulation::cPopulation(AnyOption& options, gsl_rng* in_rng, uint32_t in_replicate)
-: simulation_parameters(options, in_rng)
-, output_parameters(options)
-, marker_divergence(options)
+cPopulation::cPopulation(const SimulationParameters& in_simulation_parameters,
+                         const OutputParameters& in_output_parameters,
+                         const MarkerDivergence& in_marker_divergence,
+                         gsl_rng* in_rng,
+                         uint32_t in_replicate)
+: simulation_parameters(in_simulation_parameters)
+, output_parameters(in_output_parameters)
+, marker_divergence(in_marker_divergence)
+, debug(in_output_parameters.debug)
 , replicate(in_replicate)
 , unique_genotype_count(0)
 , existing_genotype_count(0)
@@ -22,7 +27,6 @@ cPopulation::cPopulation(AnyOption& options, gsl_rng* in_rng, uint32_t in_replic
 , rng(in_rng)
 , log_2(log(2))
 {
-  debug = options.count("debug");
 }
 
 void cPopulation::DisplayParameters()
@@ -47,7 +51,7 @@ void cPopulation::RunSimulation()
   cerr << endl;
   
   // Print the initial tree
-  //if (g_verbose) population.PrintTree();
+  //if (output_parameters.verbose) population.PrintTree();
   
   // Get us started with a mutation
   num_divisions_until_next_mutation += CalculateDivisionsUntilNextBeneficialMutation();
@@ -527,7 +531,7 @@ double cPopulation::TimeToNextWholeCell()
 void cPopulation::ProcessCellDivisionTimeStepExactWithFractionalCells()
 {
   
-  if (g_verbose) {
+  if (output_parameters.verbose) {
     for(vector<cSubpopulation>::iterator this_time = current_subpopulations.begin(); this_time != current_subpopulations.end(); this_time++) {
       cout << "Genotype: " << this_time->GetNode_id() << " Fitness: " << this_time->GetFitness() << " Number: " << this_time->GetNumber() << endl;
     }
@@ -547,7 +551,7 @@ void cPopulation::ProcessCellDivisionTimeStepExactWithFractionalCells()
     desired_divisions = 1;
   }
   
-  if (g_verbose) {
+  if (output_parameters.verbose) {
     cout << "Total pop size: " << current_population_size <<endl;
     cout << "Desired divisions: " << desired_divisions <<endl;
   }
@@ -561,7 +565,7 @@ void cPopulation::ProcessCellDivisionTimeStepExactWithFractionalCells()
   // This is the exact amount of time to be sure that this many fractional cells were produced
   update_time = log2((desired_divisions+current_population_size) / current_population_size) / CalculateAverageSubpopulationFitness();  
 
-  if (g_verbose) {
+  if (output_parameters.verbose) {
     cout << "Update time: " << update_time <<endl;    
   }
   
@@ -574,7 +578,7 @@ void cPopulation::ProcessCellDivisionTimeStepExactWithFractionalCells()
   // Check approximation -- it's very good.
   //cerr << completed_divisions << " " << desired_divisions << endl;
   
-  if (g_verbose) {
+  if (output_parameters.verbose) {
     cerr << "Completed divisions: " << completed_divisions << endl;
     for(vector<cSubpopulation>::iterator this_time = current_subpopulations.begin(); this_time != current_subpopulations.end(); this_time++) {
       cerr << "Genotype: " << this_time->GetNode_id() << " Frequency: " << this_time->GetNumber() << " Fitness: " << this_time->GetFitness() << endl;
@@ -590,7 +594,7 @@ void cPopulation::ProcessCellDivisionTimeStepExactWithFractionalCells()
    */ // We should really backtrack so that all pops divided simultaneously, this is slightly off.
   // We could move time forward by the number of mutations and then weight which subpop it occurs in by the number of divisions in each one
   
-  if (g_verbose) {
+  if (output_parameters.verbose) {
     cerr << "Divisions until mutation: " << num_divisions_until_next_mutation << endl;
   }
 }
@@ -603,7 +607,7 @@ void cPopulation::TransferResampleDilution()
   // @JEB: Move to main simulation loop
   num_completed_transfers++;
   
-  if (g_verbose) cerr << "  Population size before transfer: " << current_population_size << endl;
+  if (output_parameters.verbose) cerr << "  Population size before transfer: " << current_population_size << endl;
   
   current_population_size = 0; // recalculate population size
   for (vector<cSubpopulation>::iterator it = current_subpopulations.begin(); it!=current_subpopulations.end(); ++it) {
@@ -630,7 +634,7 @@ void cPopulation::TransferResampleDilution()
     }
   }
   
-  if (g_verbose) cerr << "  Population size after transfer: " << current_population_size << endl;
+  if (output_parameters.verbose) cerr << "  Population size after transfer: " << current_population_size << endl;
   
   // Check our calculated population size
   // Check how we have updated the population size
@@ -640,7 +644,7 @@ void cPopulation::TransferResampleDilution()
   }
   
   /*
-   if (g_verbose) cout << "Colors: " << by_color[RED] << " / " << by_color[WHITE] << endl;
+   if (output_parameters.verbose) cout << "Colors: " << by_color[RED] << " / " << by_color[WHITE] << endl;
    SetRatio( (double) by_color[RED]/by_color[WHITE] );
    
    // Checks for stopping early if in marker divergence mode
@@ -656,7 +660,7 @@ void cPopulation::TransferResampleDilution()
    if  ( (GetRatio() > GetMaxDivergenceFactor()) || 
    (GetRatio() < 1/GetMaxDivergenceFactor()) )   
    {
-   if (g_verbose) cout << "DIVERGENCE CONDITION MET" << endl;
+   if (output_parameters.verbose) cout << "DIVERGENCE CONDITION MET" << endl;
    run_end_condition_met = true;
    }  
    }
@@ -777,7 +781,7 @@ void cPopulation::SeedPopulationWithOneGenotype() {
   
   current_population_size = simulation_parameters.initial_population_size;
   
-  if (g_verbose) {
+  if (output_parameters.verbose) {
     cout << "Completed divisions: " << num_completed_divisions << endl;
     for(vector<cSubpopulation>::iterator this_time = current_subpopulations.begin(); this_time != current_subpopulations.end(); this_time++) {
       cout << "Genotype1: " << this_time->GetNode_id() << " Frequency1: " << this_time->GetNumber() << endl;
@@ -821,8 +825,8 @@ void cPopulation::CullSubpopulationsThatDidNotEstablish() {
 //Generates new mutant and adds it to the tree
 void cPopulation::MutateExactWithFractionalCells() 
 {	
-	if (g_verbose) cout << "* Mutating!" << endl;
-  if (g_verbose) cout << "Total population: " << CalculatePopulationSize() << endl;
+	if (output_parameters.verbose) cout << "* Mutating!" << endl;
+  if (output_parameters.verbose) cout << "Total population: " << CalculatePopulationSize() << endl;
 	
   // Mutation depends on instantaneuous Fitness * population size of subpopulations.
   vector<double> fractional_chances_per_subpopulation(current_subpopulations.size());
@@ -863,21 +867,22 @@ void cPopulation::MutateExactWithFractionalCells()
                               ancestor, 
                               simulation_parameters,
                               genotype_tree,
-                              unique_genotype_count++
+                              unique_genotype_count++,
+                              output_parameters.verbose
                               );
   
   if (success_adding) {
   
-    if (g_verbose) cout << "  Color: " << new_subpop.GetMarker() << endl;
-    if (g_verbose) cout << "  New Fitness: " << new_subpop.GetFitness() << endl;
+    if (output_parameters.verbose) cout << "  Color: " << new_subpop.GetMarker() << endl;
+    if (output_parameters.verbose) cout << "  New Fitness: " << new_subpop.GetFitness() << endl;
     
     AddSubpopulation(new_subpop);
     
     // Update the maximum subpopulation fitness
     maximum_subpopulation_fitness = max(maximum_subpopulation_fitness, new_subpop.GetFitness());
     
-    if (g_verbose) cout << "  New Number: " << new_subpop.GetNumber() << endl;
-    if (g_verbose) cout << "  Old Number: " << ancestor.GetNumber() << endl;
+    if (output_parameters.verbose) cout << "  New Number: " << new_subpop.GetNumber() << endl;
+    if (output_parameters.verbose) cout << "  Old Number: " << ancestor.GetNumber() << endl;
     
     replicate_statistics.total_mutations++;
   }

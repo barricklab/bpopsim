@@ -5,6 +5,7 @@ add_executable(bpopsim_tests
   main.cpp
   test_common.cc
   test_parameters.cc
+  test_population.cc
 )
 target_include_directories(bpopsim_tests SYSTEM PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/third_party/doctest")

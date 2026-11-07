@@ -41,8 +41,6 @@
 
 using namespace std;
 
-// Global variable for keeping track of verbosity
-extern bool g_verbose;
 
 
 // Utility functions

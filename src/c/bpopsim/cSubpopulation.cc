@@ -105,10 +105,11 @@ bool cSubpopulation::CreateDescendant(  gsl_rng * randomgenerator,
                                         cSubpopulation &ancestor, 
                                         SimulationParameters& simulation_parameters,
                                         tree<cGenotype>& in_tree, 
-                                        uint32_t node_id
-                                      ) 
-{	
-  if (g_verbose) cout << "Creating descendant with node_id: " << node_id << endl;
+                                        uint32_t node_id,
+                                        bool verbose
+                                      )
+{
+  if (verbose) cout << "Creating descendant with node_id: " << node_id << endl;
 	
 	cGenotype new_genotype(simulation_parameters, node_id, ancestor.GetGenotype());
   bool success_adding = new_genotype.AddOneMutation(simulation_parameters, randomgenerator);

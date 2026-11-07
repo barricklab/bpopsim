@@ -83,13 +83,21 @@ program falls back to printing usage.
 
 ## Architecture
 
-- `main.cpp`: defines options with `AnyOption`, builds one `gsl_rng` seeded
-  once for the whole execution, loops over replicates constructing a fresh
-  `cPopulation` each time, then writes per-replicate and summary outputs.
-- `cPopulation` (`cPopulation.h`): owns `SimulationParameters`,
-  `OutputParameters`, `MarkerDivergence`, a `vector<cSubpopulation>` of
-  currently living genotypes with their cell counts, and a `tree<cGenotype>`
-  of every genotype ever created. `RunSimulation()` loops transfers;
+- `main.cpp`: parses the command line with `AnyOption` (option table in
+  `options.cc`), converts it into `SimulationParameters`, `OutputParameters`
+  and `MarkerDivergence` via the `Parse*` functions in `options.cc`, calls
+  `Validate()`, builds one `gsl_rng` seeded once for the whole execution,
+  loops over replicates constructing a fresh `cPopulation` from the structs
+  each time, then writes per-replicate and summary outputs.
+- Parameter structs (`cPopulation.h`): plain data with defaults equal to the
+  command-line defaults. `SimulationParameters::Finalize()` computes derived
+  values (dilution factor, binomial probability, category fractions); call it
+  after changing inputs. Only `options.cc` touches `AnyOption`, so tests
+  construct the structs directly.
+- `cPopulation` (`cPopulation.h`): owns copies of the three parameter
+  structs, a `vector<cSubpopulation>` of currently living genotypes with
+  their cell counts, and a `tree<cGenotype>` of every genotype ever created.
+  `RunSimulation()` loops transfers;
   within a transfer it alternates
   `ProcessCellDivisionTimeStepExactWithFractionalCells()` (grow until the
   next whole-cell event or the next mutation), `MutateExactWithFractionalCells()`
@@ -104,7 +112,8 @@ program falls back to printing usage.
   the `Output*` methods average across replicates and write the summary
   `.tab` files.
 - `common.h`: string/number helpers (`split`, `join`, `from_string<>`,
-  `to_string`), `create_path`, and the global `g_verbose`.
+  `to_string`) and `create_path`. Verbose and debug switches live on
+  `OutputParameters`, not in globals.
 
 ## Working rules
 
@@ -154,11 +163,10 @@ program falls back to printing usage.
 - Roughly a dozen `cPopulation` methods below the comment
   "Need to check output below here" are unreferenced, as is the
   `CONVERT-TREE` subcommand in `main.cpp`.
-- `SimulationParameters`, `OutputParameters`, `cStatistics` take `AnyOption&`
-  in their constructors. Tests currently build a parser with
-  `DefineBpopsimOptions` and a fake argv (see `tests/test_parameters.cc`);
-  Phase 3 removes the coupling. The `-u`/`-s` count mismatch calls `exit`,
-  so it cannot be unit-tested yet.
+- `MarkerDivergence::marker_states` is a `bool` assigned from `-k`'s integer,
+  so marker mode (`-k 2`) passes `1` to `SeedPopulationWithMarkedGenotypes`,
+  which asserts it equals 2. Marker-divergence mode is currently unusable.
+- Burn-in transfers (`-b`) are performed in addition to `-n`, not within it.
 
 ## Uncommitted work
 
