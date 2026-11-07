@@ -55,26 +55,40 @@ Number of transfers to simulate after burn-in (default 50).
 .BR \-z ", " \-\-initial\-fitness " \fIW\fR"
 Fitness of the ancestral genotype (default 1.0).
 .TP
-.BR \-u ", " \-\-mutation\-rates " \fIRATE\fR"
-Beneficial mutation rate per cell division (default 1E-7). Give the option
-several times to define several categories of mutations; each must be matched
-by a
-.B \-s
-value.
+.BR \-u ", " \-\-mutation\-rates " \fIRATES\fR"
+Beneficial mutation rate per cell division for each category of mutations
+(default 1E-7). Categories are written as comma-separated items inside
+|-separated groups, where a group collects categories drawn from the same
+kind of distribution, for example
+.BR "\-u \[dq]1E-7,1E-8|1E-9\[dq]" .
+Repeating the option adds another group. A mutation occurs at the total rate
+over all categories and is assigned to one category in proportion to its
+rate. Quote the value so the shell does not treat | as a pipe.
 .TP
-.BR \-s ", " \-\-fitness\-effects " \fIS\fR"
-Fitness effect of a mutation in the corresponding category (default 0.1).
+.BR \-s ", " \-\-fitness\-effects " \fIEFFECTS\fR"
+Fitness effect of a mutation in each category (default 0.1), with the same
+| and , shape as
+.BR \-u .
 Under the exponential model this is the mean.
 .TP
-.BR \-f ", " \-\-fitness\-effect\-model " \fIMODEL\fR"
-How fitness effects are drawn:
+.BR \-f ", " \-\-fitness\-effect\-model " \fIMODELS\fR"
+How the fitness effect is drawn in each category, with the same shape as
+.BR \-u ,
+or a single letter applied to every category (default u):
 .B u
-every mutation has exactly the effect given by
-.BR \-s ;
+every mutation has exactly the
+.B \-s
+value;
 .B e
 effects are exponentially distributed with that mean;
 .B o
-only one mutation per category can ever occur in a lineage (default u).
+exactly the
+.B \-s
+value, but only one mutation in that category can ever occur in a lineage.
+Example matching the
+.B \-u
+example above:
+.BR "\-f \[dq]u,u|e\[dq]" .
 .TP
 .BR \-m ", " \-\-multiplicative\-fitness
 Combine effects multiplicatively, fitness = f (1 + s), instead of additively,

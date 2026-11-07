@@ -336,6 +336,17 @@ CI results from the first pushes:
   instead of wrapping. The parse calls in `main` moved inside the error
   handling block so parse-time errors print the usage text too.
 
+- 2026-11-07: grouped mutation categories. `-u`, `-s`, `-f` accept
+  `|`-separated groups of `,`-separated items (repeats add groups); `-f` is
+  now per category, with a single letter broadcast for backward
+  compatibility. Internally flattened: `mutation_fitness_effect_models`
+  replaces the single model string and `mutation_category_group_sizes`
+  records the grouping for display. `DetermineMutationCategory` clamps to
+  the last category. This completes the intent of the old
+  `WIP vector<vector> mutation rates` stash, which was dropped; its
+  `mutation_path` field was not needed because every lineage can draw from
+  every group. Golden identical.
+
 ## Verification at every phase
 
 ```

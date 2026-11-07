@@ -127,8 +127,9 @@ program falls back to printing usage.
   `--output-marker-frequencies` are only used with `-k`.
 - `cSubpopulation` / `cGenotype` (`cSubpopulation.h`): a subpopulation is a
   cell count, a marker state, and an iterator into the genotype tree.
-  `cGenotype::AddOneMutation()` applies the fitness-effect model
-  (`u` uniform, `e` exponential, `o` one-time per category).
+  `cGenotype::AddOneMutation()` picks the category (probability
+  proportional to its rate) and applies that category's fitness-effect model
+  (`u` fixed, `e` exponential, `o` one-time per category per lineage).
 - `cStatistics` (`cPopulation.h`): a vector of `cReplicateStatistics`;
   the `Output*` methods average across replicates and write the summary
   `.tab` files.
@@ -164,8 +165,15 @@ program falls back to printing usage.
   on them.
 - Option values in scientific notation must be quoted on the command line
   (`-p "5E6"`).
-- `-u` and `-s` may be repeated to define mutation categories; the counts
-  must match or the program exits with usage.
+- Mutation categories: `-u`, `-s`, `-f` take `|`-separated groups of
+  `,`-separated items (repeating an option adds a group). All three must have
+  the same shape, except that a single `-f` letter is broadcast. Internally
+  everything is flattened to per-category vectors in `SimulationParameters`
+  (`mutation_rates_per_division`, `mutation_fitness_effects`,
+  `mutation_fitness_effect_models`); `mutation_category_group_sizes` only
+  records the grouping for display. Parsing and shape checks live in
+  `ParseGroupedList` / `ParseSimulationParameters` (`options.cc`); value
+  checks in `SimulationParameters::Validate`.
 - `-1` repeated fixes the fitness effects of the first N mutations.
 - Output precision is set with `setprecision` in the output methods; changing
   float formatting changes output files.
@@ -198,11 +206,3 @@ program falls back to printing usage.
   `--output-diverged-frequencies` and `--output-longest-sweep-time` are not
   meaningful there (documented in the man page).
 - Burn-in transfers (`-b`) are performed in addition to `-n`, not within it.
-
-## Stashed work
-
-A git stash named `WIP vector<vector> mutation rates` holds an incomplete
-change that makes `mutation_rates_per_division` and `mutation_fitness_effects`
-`vector<vector<double>>` with a `|` separator between groups and adds a
-`mutation_path` field to `cGenotype`. It does not compile. Do not build on it
-until it is finished or dropped.

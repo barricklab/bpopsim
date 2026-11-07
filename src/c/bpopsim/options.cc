@@ -22,13 +22,17 @@ namespace bpopsim {
     options("multiplicative-fitness,m", "Use multiplicative fitness model [f * (1 + s)]. Default = additive [f + s].",
             NoArgument);
     options("mutation-rates,u",
-            "Mutation rate per cell division. Supply option multiple times to define categories of mutations.", "1E-7");
+            "Beneficial mutation rate per cell division for each category of mutations. Categories are written as "
+            "','-separated items within '|'-separated groups, e.g. \"1E-7,1E-8|1E-9\"; repeating the option adds "
+            "another group. A mutation occurs at the total rate and is assigned to a category in proportion to its "
+            "rate.",
+            "1E-7");
     options("fitness-effects,s",
-            "Mean fitness increment per mutation. Supply option multiple times to define categories of mutations.",
-            0.1);
+            "Fitness effect (or mean effect) of a mutation in each category. Same '|' and ',' shape as -u.", 0.1);
     options("fitness-effect-model,f",
-            "Distribution of mutation fitness effects. Choices are 'u' for uniform, 'e' for exponential distributions, "
-            "'o' for only one beneficial mutation possible in that category.",
+            "How the fitness effect is drawn in each category: 'u' every mutation has exactly the -s value, 'e' "
+            "exponentially distributed with mean -s, 'o' exactly the -s value but only one mutation per category per "
+            "lineage. Same '|' and ',' shape as -u, or a single letter applied to every category.",
             'u');
     options("first-mutation-fitness-effects,1",
             "Use these fitness effects for the first mutations. Supply option multiple times to define the fitness "
@@ -113,6 +117,44 @@ namespace bpopsim {
 
 namespace bpopsim {
 
+  vector<vector<string>> ParseGroupedList(const string& value)
+  {
+    // Repeated options arrive joined with "\n"; treat that like '|'.
+    const string groups_text = substitute(value, "\n", "|");
+
+    vector<vector<string>> groups;
+    for (const string& group_text : split(groups_text, "|")) {
+      vector<string> items;
+      for (const string& raw_item : split(group_text, ",")) {
+        const string item = chomp(raw_item.substr(
+            raw_item.find_first_not_of(" \t") == string::npos ? raw_item.size() : raw_item.find_first_not_of(" \t")));
+        if (item.empty()) {
+          throw std::invalid_argument("Empty item in list \"" + value + "\" (check for stray ',' or '|').");
+        }
+        items.push_back(item);
+      }
+      if (items.empty()) {
+        throw std::invalid_argument("Empty group in list \"" + value + "\" (check for stray '|').");
+      }
+      groups.push_back(items);
+    }
+    if (groups.empty()) throw std::invalid_argument("Empty list where at least one value is required.");
+    return groups;
+  }
+
+  namespace {
+
+    bool SameShape(const vector<vector<string>>& a, const vector<vector<string>>& b)
+    {
+      if (a.size() != b.size()) return false;
+      for (size_t g = 0; g < a.size(); ++g) {
+        if (a[g].size() != b[g].size()) return false;
+      }
+      return true;
+    }
+
+  }  // namespace
+
   SimulationParameters ParseSimulationParameters(OptionParser& options)
   {
     SimulationParameters p;
@@ -123,9 +165,41 @@ namespace bpopsim {
 
     p.initial_fitness = from_string<double>(options["initial-fitness"]);
     p.multiplicative_fitness_effects = options.count("multiplicative-fitness");
-    p.mutation_rates_per_division = from_string<vector<double>>(options["mutation-rates"]);
-    p.mutation_fitness_effects = from_string<vector<double>>(options["fitness-effects"]);
-    p.mutation_fitness_effect_model = options["fitness-effect-model"];
+    // Mutation categories: '|' groups of ',' items, identical shape for -u, -s
+    // and -f (a single -f letter is broadcast to every category).
+    const vector<vector<string>> rates = ParseGroupedList(options["mutation-rates"]);
+    const vector<vector<string>> effects = ParseGroupedList(options["fitness-effects"]);
+    vector<vector<string>> models = ParseGroupedList(options["fitness-effect-model"]);
+
+    if (!SameShape(rates, effects)) {
+      throw std::invalid_argument("The -u and -s lists must have the same shape (same '|' groups and ',' items).");
+    }
+    if (models.size() == 1 && models[0].size() == 1) {
+      // Broadcast one model to the shape of -u.
+      const string model = models[0][0];
+      models.clear();
+      for (const auto& group : rates) models.emplace_back(group.size(), model);
+    } else if (!SameShape(rates, models)) {
+      throw std::invalid_argument(
+          "The -f list must be a single model or have the same shape as -u (same '|' groups and ',' items).");
+    }
+
+    p.mutation_rates_per_division.clear();
+    p.mutation_fitness_effects.clear();
+    p.mutation_fitness_effect_models.clear();
+    p.mutation_category_group_sizes.clear();
+    for (size_t g = 0; g < rates.size(); ++g) {
+      p.mutation_category_group_sizes.push_back(rates[g].size());
+      for (size_t i = 0; i < rates[g].size(); ++i) {
+        p.mutation_rates_per_division.push_back(from_string<double>(rates[g][i]));
+        p.mutation_fitness_effects.push_back(from_string<double>(effects[g][i]));
+        if (models[g][i].size() != 1) {
+          throw std::invalid_argument("Fitness effect model (-f) entries must be single letters: '" + models[g][i] +
+                                      "'.");
+        }
+        p.mutation_fitness_effect_models.push_back(models[g][i][0]);
+      }
+    }
 
     p.average_fitness_end_condition = from_string<double>(options["average-fitness-end-condition"]);
 

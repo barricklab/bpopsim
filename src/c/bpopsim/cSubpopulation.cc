@@ -43,22 +43,24 @@ namespace bpopsim {
 
       uint32_t this_mutation_category = simulation_parameters.DetermineMutationCategory(rng);
       double average_mutation_fitness_effect = simulation_parameters.mutation_fitness_effects[this_mutation_category];
+      char model = simulation_parameters.mutation_fitness_effect_models[this_mutation_category];
 
-      if (simulation_parameters.mutation_fitness_effect_model == "e") {
+      switch (model) {
+      case 'e':  // exponentially distributed effect with the given mean
         this->this_mutation_fitness_effect = rng.Exponential(average_mutation_fitness_effect);
-      }
-
-      if (simulation_parameters.mutation_fitness_effect_model == "u") {
+        break;
+      case 'u':  // every mutation in this category has exactly this effect
         this->this_mutation_fitness_effect = average_mutation_fitness_effect;
-      }
-
-      // One-time mutations
-      if (simulation_parameters.mutation_fitness_effect_model == "o") {
-        if (this->mutation_counts[this_mutation_category] < 1) {
-          this->this_mutation_fitness_effect = average_mutation_fitness_effect;
-        } else {
+        break;
+      case 'o':  // one-time: only the first mutation in this category can occur in a lineage
+        if (this->mutation_counts[this_mutation_category] >= 1) {
           return false;  // short circuit = do not add population
         }
+        this->this_mutation_fitness_effect = average_mutation_fitness_effect;
+        break;
+      default:
+        assert(false && "unknown fitness effect model; SimulationParameters::Validate should have rejected it");
+        return false;
       }
 
       this->mutation_counts[this_mutation_category]++;

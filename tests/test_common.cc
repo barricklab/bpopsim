@@ -119,3 +119,10 @@ TEST_CASE("regex_m is a plain substring match")
   CHECK(regex_m("needle", "hay needle stack"));
   CHECK_FALSE(regex_m("needle", "haystack"));
 }
+
+TEST_CASE("split handles a single-character string")
+{
+  vector<string> parts = split("u", ",");
+  REQUIRE(parts.size() == 1);
+  CHECK(parts[0] == "u");
+}

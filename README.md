@@ -59,9 +59,9 @@ build/bpopsim -r 3 -p 5E6 -N 5E6 -T 6.64 -u 1E-7 -s 0.1 -n 500 \
 | `-N, --population-size-after-transfer` | Cells after each dilution |
 | `-T, --generations-per-transfer` | Doublings per transfer; the dilution factor is 2^T |
 | `-n, --number-of-transfers` | Transfers to simulate |
-| `-u, --mutation-rates` | Beneficial mutation rate per cell division. Repeat to define categories |
-| `-s, --fitness-effects` | Fitness effect per mutation. Repeat to match `-u` categories |
-| `-f, --fitness-effect-model` | `u` fixed effect, `e` exponential with mean `-s`, `o` one mutation per category |
+| `-u, --mutation-rates` | Beneficial mutation rate per cell division, per category (see below) |
+| `-s, --fitness-effects` | Fitness effect, or mean effect, per category; same shape as `-u` |
+| `-f, --fitness-effect-model` | Per category: `u` fixed effect, `e` exponential with mean `-s`, `o` one mutation per category per lineage. Same shape as `-u`, or one letter for all |
 | `-m, --multiplicative-fitness` | Fitness = f (1 + s) instead of f + s |
 | `-1, --first-mutation-fitness-effects` | Override the effects of the 1st, 2nd, ... mutations |
 | `-k, --marker-states` | Marker mode: start with N genotypes carrying different neutral marker states, each with 1/N of the population (0 = off, else at least 2) |
@@ -72,6 +72,24 @@ build/bpopsim -r 3 -p 5E6 -N 5E6 -T 6.64 -u 1E-7 -s 0.1 -n 500 \
 
 Quote values in scientific notation (`-p "5E6"`) if your shell would otherwise
 mangle them.
+
+### Mutation categories
+
+`-u`, `-s`, and `-f` describe categories of beneficial mutations. Categories
+are written as `,`-separated items inside `|`-separated groups, where a group
+collects categories drawn from the same kind of distribution; repeating an
+option adds another group. All three options must have the same shape, except
+that a single `-f` letter applies to every category. A mutation occurs at the
+total rate across categories and is assigned to one in proportion to its
+rate. For example, two fixed-effect categories plus one exponential one:
+
+```sh
+build/bpopsim -u "1E-7,1E-8|1E-9" -s "0.1,0.3|0.05" -f "u,u|e" ...
+```
+
+Quote the value so the shell does not treat `|` as a pipe. Output files that
+report per-category counts number the categories in this flattened order
+(here 1, 2, 3).
 
 ## Output files
 

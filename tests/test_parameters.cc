@@ -5,6 +5,7 @@
 #include "random.h"
 
 #include <cmath>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -46,7 +47,8 @@ TEST_CASE("SimulationParameters defaults match the command-line defaults")
   CHECK(sp.generations_per_transfer == doctest::Approx(6.64));
   CHECK(sp.initial_fitness == doctest::Approx(1.0));
   CHECK_FALSE(sp.multiplicative_fitness_effects);
-  CHECK(sp.mutation_fitness_effect_model == "u");
+  CHECK(sp.mutation_fitness_effect_models == vector<char>{'u'});
+  CHECK(sp.mutation_category_group_sizes == vector<uint32_t>{1});
   REQUIRE(sp.mutation_rates_per_division.size() == 1);
   CHECK(sp.mutation_rates_per_division[0] == doctest::Approx(1e-7));
   REQUIRE(sp.mutation_fitness_effects.size() == 1);
@@ -113,6 +115,7 @@ TEST_CASE("Validate rejects mismatched -u and -s counts")
   CHECK_THROWS_AS(sp.Validate(), std::invalid_argument);
 
   sp.mutation_fitness_effects = {0.1, 0.2};
+  sp.Finalize();  // broadcasts the single default model to both categories
   CHECK_NOTHROW(sp.Validate());
 }
 
@@ -142,7 +145,7 @@ TEST_CASE("ParseSimulationParameters with no arguments equals the defaults")
   CHECK(parsed.maximum_number_of_transfers == defaults.maximum_number_of_transfers);
   CHECK(parsed.initial_population_size == doctest::Approx(defaults.initial_population_size));
   CHECK(parsed.generations_per_transfer == doctest::Approx(defaults.generations_per_transfer));
-  CHECK(parsed.mutation_fitness_effect_model == defaults.mutation_fitness_effect_model);
+  CHECK(parsed.mutation_fitness_effect_models == defaults.mutation_fitness_effect_models);
   CHECK(parsed.mutation_rates_per_division == defaults.mutation_rates_per_division);
   CHECK(parsed.mutation_fitness_effects == defaults.mutation_fitness_effects);
   CHECK(parsed.transfer_dilution_factor == doctest::Approx(defaults.transfer_dilution_factor));
@@ -163,18 +166,18 @@ TEST_CASE("ParseSimulationParameters reads repeated -u/-s and the model flags")
   REQUIRE(sp.mutation_fitness_effects.size() == 2);
   CHECK(sp.mutation_fitness_effects[1] == doctest::Approx(0.2));
   CHECK(sp.multiplicative_fitness_effects);
-  CHECK(sp.mutation_fitness_effect_model == "e");
+  CHECK(sp.mutation_fitness_effect_models == vector<char>{'e', 'e'});  // single -f broadcast
+  CHECK(sp.mutation_category_group_sizes == vector<uint32_t>{1, 1});
   REQUIRE(sp.first_mutation_fitness_effects.size() == 2);
   CHECK(sp.first_mutation_fitness_effects[0] == doctest::Approx(0.05));
   CHECK(sp.first_mutation_fitness_effects[1] == doctest::Approx(0.02));
   CHECK_NOTHROW(sp.Validate());
 }
 
-TEST_CASE("ParseSimulationParameters with mismatched -u/-s fails Validate")
+TEST_CASE("ParseSimulationParameters rejects mismatched -u/-s shapes")
 {
   ParsedOptions p({"-u", "1E-7", "-u", "2E-7", "-s", "0.1"});
-  SimulationParameters sp = ParseSimulationParameters(p.options);
-  CHECK_THROWS_AS(sp.Validate(), std::invalid_argument);
+  CHECK_THROWS_AS(ParseSimulationParameters(p.options), std::invalid_argument);
 }
 
 TEST_CASE("ParseOutputParameters and ParseMarkerDivergence read their options")
@@ -227,7 +230,7 @@ TEST_CASE("cGenotype::AddOneMutation applies the fitness-effect models")
 
   SUBCASE("additive")
   {
-    sp.mutation_fitness_effect_model = "u";
+    sp.mutation_fitness_effect_models = {'u'};
     sp.Finalize();
     cGenotype g(sp, 0);
     CHECK(g.fitness == doctest::Approx(1.0));
@@ -251,7 +254,7 @@ TEST_CASE("cGenotype::AddOneMutation applies the fitness-effect models")
 
   SUBCASE("one-time model refuses a second mutation in the same category")
   {
-    sp.mutation_fitness_effect_model = "o";
+    sp.mutation_fitness_effect_models = {'o'};
     sp.Finalize();
     cGenotype g(sp, 0);
     REQUIRE(g.AddOneMutation(sp, rng));
@@ -315,4 +318,159 @@ TEST_CASE("a negative --burn-in is rejected instead of wrapping")
   ParsedOptions negative({"-b", "-1"});
   CHECK_THROWS_AS(ParseOutputParameters(negative.options), std::invalid_argument);
   CHECK_THROWS_WITH(ParseOutputParameters(negative.options), "--burn-in must be 0 or greater.");
+}
+
+// ---- Grouped mutation categories ----
+
+TEST_CASE("ParseGroupedList splits '|' groups and ',' items")
+{
+  vector<vector<string>> g = ParseGroupedList("a,b|c");
+  REQUIRE(g.size() == 2);
+  CHECK(g[0] == vector<string>{"a", "b"});
+  CHECK(g[1] == vector<string>{"c"});
+
+  // Repeated options arrive joined with "\n" and count as further groups.
+  vector<vector<string>> repeated = ParseGroupedList("1E-7\n2E-7");
+  REQUIRE(repeated.size() == 2);
+  CHECK(repeated[0] == vector<string>{"1E-7"});
+  CHECK(repeated[1] == vector<string>{"2E-7"});
+
+  vector<vector<string>> spaced = ParseGroupedList(" 0.1 , 0.2 | 0.3 ");
+  REQUIRE(spaced.size() == 2);
+  CHECK(spaced[0] == vector<string>{"0.1", "0.2"});
+  CHECK(spaced[1] == vector<string>{"0.3"});
+
+  CHECK_THROWS_AS(ParseGroupedList("1E-7,"), std::invalid_argument);
+  CHECK_THROWS_AS(ParseGroupedList("|1E-7"), std::invalid_argument);
+  CHECK_THROWS_AS(ParseGroupedList(""), std::invalid_argument);
+}
+
+TEST_CASE("grouped -u/-s/-f parse into flat categories with group sizes")
+{
+  ParsedOptions p({"-u", "1E-7,1E-8|1E-9", "-s", "0.1,0.3|0.05", "-f", "u,u|e"});
+  SimulationParameters sp = ParseSimulationParameters(p.options);
+  CHECK_NOTHROW(sp.Validate());
+
+  REQUIRE(sp.mutation_rates_per_division.size() == 3);
+  CHECK(sp.mutation_rates_per_division[0] == doctest::Approx(1e-7));
+  CHECK(sp.mutation_rates_per_division[1] == doctest::Approx(1e-8));
+  CHECK(sp.mutation_rates_per_division[2] == doctest::Approx(1e-9));
+  CHECK(sp.mutation_fitness_effects == vector<double>{0.1, 0.3, 0.05});
+  CHECK(sp.mutation_fitness_effect_models == vector<char>{'u', 'u', 'e'});
+  CHECK(sp.mutation_category_group_sizes == vector<uint32_t>{2, 1});
+  CHECK(sp.total_mutation_rate_per_division == doctest::Approx(1e-7 + 1e-8 + 1e-9));
+
+  CHECK(sp.GroupedString(sp.mutation_fitness_effect_models) == "u,u|e");
+  CHECK(sp.GroupedString(sp.mutation_fitness_effects) == "0.1,0.3|0.05");
+}
+
+TEST_CASE("a single -f model is broadcast to every category")
+{
+  ParsedOptions p({"-u", "1E-7|1E-8", "-s", "0.1|0.2", "-f", "e"});
+  SimulationParameters sp = ParseSimulationParameters(p.options);
+  CHECK(sp.mutation_fitness_effect_models == vector<char>{'e', 'e'});
+  CHECK(sp.mutation_category_group_sizes == vector<uint32_t>{1, 1});
+}
+
+TEST_CASE("repeated -u/-s options still define categories")
+{
+  ParsedOptions p({"-u", "1E-7", "-u", "2E-7", "-s", "0.1", "-s", "0.2"});
+  SimulationParameters sp = ParseSimulationParameters(p.options);
+  CHECK(sp.mutation_rates_per_division.size() == 2);
+  CHECK(sp.mutation_fitness_effects == vector<double>{0.1, 0.2});
+  CHECK(sp.mutation_fitness_effect_models == vector<char>{'u', 'u'});
+  CHECK(sp.mutation_category_group_sizes == vector<uint32_t>{1, 1});
+  CHECK_NOTHROW(sp.Validate());
+}
+
+TEST_CASE("shape mismatches and bad models are rejected")
+{
+  SUBCASE("-u vs -s shape")
+  {
+    ParsedOptions p({"-u", "1E-7,1E-8", "-s", "0.1|0.2"});
+    CHECK_THROWS_AS(ParseSimulationParameters(p.options), std::invalid_argument);
+  }
+  SUBCASE("-f shape with more than one model")
+  {
+    ParsedOptions p({"-u", "1E-7,1E-8", "-s", "0.1,0.2", "-f", "u|e"});
+    CHECK_THROWS_AS(ParseSimulationParameters(p.options), std::invalid_argument);
+  }
+  SUBCASE("unknown model letter is caught by Validate")
+  {
+    ParsedOptions p({"-u", "1E-7", "-s", "0.1", "-f", "z"});
+    SimulationParameters sp = ParseSimulationParameters(p.options);
+    CHECK_THROWS_AS(sp.Validate(), std::invalid_argument);
+  }
+  SUBCASE("multi-letter model")
+  {
+    ParsedOptions p({"-u", "1E-7", "-s", "0.1", "-f", "uu"});
+    CHECK_THROWS_AS(ParseSimulationParameters(p.options), std::invalid_argument);
+  }
+  SUBCASE("negative rate")
+  {
+    SimulationParameters sp;
+    sp.mutation_rates_per_division = {-1e-7};
+    CHECK_THROWS_AS(sp.Validate(), std::invalid_argument);
+  }
+}
+
+TEST_CASE("each category applies its own fitness-effect model")
+{
+  RandomGenerator rng(17);
+  SimulationParameters sp;
+  sp.mutation_fitness_effects = {0.1, 0.2};
+  sp.mutation_fitness_effect_models = {'u', 'e'};
+  sp.mutation_category_group_sizes = {1, 1};
+
+  SUBCASE("category 0 (u) gives exactly the fixed effect")
+  {
+    sp.mutation_rates_per_division = {1.0, 0.0};  // only category 0 can be chosen
+    sp.Finalize();
+    cGenotype g(sp, 0);
+    for (int i = 0; i < 5; ++i) REQUIRE(g.AddOneMutation(sp, rng));
+    CHECK(g.fitness == doctest::Approx(1.0 + 5 * 0.1));
+    CHECK(g.mutation_counts == vector<uint32_t>{5, 0});
+  }
+
+  SUBCASE("category 1 (e) draws exponentially distributed effects")
+  {
+    sp.mutation_rates_per_division = {0.0, 1.0};  // only category 1 can be chosen
+    sp.Finalize();
+    set<double> effects_seen;
+    for (int i = 0; i < 20; ++i) {
+      cGenotype g(sp, 0);
+      REQUIRE(g.AddOneMutation(sp, rng));
+      CHECK(g.this_mutation_fitness_effect > 0.0);
+      CHECK(g.mutation_counts == vector<uint32_t>{0, 1});
+      effects_seen.insert(g.this_mutation_fitness_effect);
+    }
+    CHECK(effects_seen.size() > 1);  // not a fixed effect
+  }
+
+  SUBCASE("one-time model on one category does not block the other")
+  {
+    sp.mutation_fitness_effect_models = {'o', 'u'};
+    sp.mutation_rates_per_division = {1.0, 0.0};
+    sp.Finalize();
+    cGenotype g(sp, 0);
+    REQUIRE(g.AddOneMutation(sp, rng));
+    CHECK_FALSE(g.AddOneMutation(sp, rng));  // second 'o' mutation refused
+
+    sp.mutation_rates_per_division = {0.0, 1.0};
+    sp.Finalize();
+    REQUIRE(g.AddOneMutation(sp, rng));  // other category still accepts
+    CHECK(g.mutation_counts == vector<uint32_t>{1, 1});
+  }
+}
+
+TEST_CASE("DetermineMutationCategory never indexes past the last category")
+{
+  SimulationParameters sp;
+  sp.mutation_rates_per_division = {1.0, 1.0, 1.0};
+  sp.mutation_fitness_effects = {0.1, 0.1, 0.1};
+  sp.mutation_fitness_effect_models = {'u', 'u', 'u'};
+  sp.mutation_category_group_sizes = {3};
+  sp.Finalize();
+  RandomGenerator rng(123);
+  for (int i = 0; i < 10000; ++i) CHECK(sp.DetermineMutationCategory(rng) < 3);
 }

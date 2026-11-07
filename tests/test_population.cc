@@ -421,3 +421,28 @@ TEST_CASE("marker_frequencies.tab has one row per replicate and marker")
   CHECK(rows == 2 * 3);
   std::filesystem::remove_all(dir);
 }
+
+TEST_CASE("a run with two groups of categories and mixed models records one count per category")
+{
+  SimulationParameters sp = SmallPopulation(10);
+  sp.mutation_rates_per_division = {1e-3, 1e-4, 5e-4};
+  sp.mutation_fitness_effects = {0.1, 0.3, 0.05};
+  sp.mutation_fitness_effect_models = {'u', 'u', 'e'};
+  sp.mutation_category_group_sizes = {2, 1};
+  sp.Finalize();
+  CHECK_NOTHROW(sp.Validate());
+
+  RandomGenerator r(321);
+  cPopulation pop(sp, DebugOutput(), MarkerDivergence(), r, 1);
+  pop.RunSimulation();
+
+  const cReplicateStatistics& s = pop.replicate_statistics;
+  REQUIRE(!s.average_mutation_counts.empty());
+  for (const vector<double>& per_category : s.average_mutation_counts) REQUIRE(per_category.size() == 3);
+  for (const GenotypeFrequencyMap& gf : s.genotype_frequencies) {
+    double sum = 0;
+    for (const auto& kv : gf) sum += kv.second;
+    CHECK(sum == doctest::Approx(1.0));
+  }
+  CHECK(s.total_mutations > 0);
+}

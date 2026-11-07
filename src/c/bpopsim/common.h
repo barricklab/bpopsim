@@ -33,7 +33,6 @@
 inline std::vector<std::string> split(const std::string& theString, const std::string& theDelimiter)
 {
   assert(!theDelimiter.empty());  // My own ASSERT macro.
-  assert(theString.size() != 1);  //@GRC check that programmer hasn't switched variables in declaration.
 
   std::size_t start = 0, end = 0;
   std::vector<std::string> theStringVector;

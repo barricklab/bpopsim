@@ -11,6 +11,11 @@ namespace bpopsim {
   //! build the same option set programmatically.
   void DefineBpopsimOptions(OptionParser& options);
 
+  //! Split an option value written as '|'-separated groups of ','-separated
+  //! items (repeated options, joined with "\n", count as further groups).
+  //! Items are trimmed; an empty item throws std::invalid_argument.
+  vector<vector<string>> ParseGroupedList(const string& value);
+
   //! Convert parsed command-line options into the parameter structs the
   //! simulation runs on. These are the only functions that read OptionParser
   //! values; everything downstream works from the structs.

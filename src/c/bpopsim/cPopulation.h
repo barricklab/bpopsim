@@ -97,15 +97,43 @@ namespace bpopsim {
     //! Throws std::invalid_argument if the inputs are inconsistent.
     void Validate() const
     {
-      if (mutation_rates_per_division.size() != mutation_fitness_effects.size()) {
+      const size_t categories = mutation_rates_per_division.size();
+      if (categories == 0) throw std::invalid_argument("At least one mutation category (-u) is required.");
+      if (mutation_fitness_effects.size() != categories || mutation_fitness_effect_models.size() != categories) {
         throw std::invalid_argument(
-            "The number of mutation rates (-u) is not the same as the number of fitness effects (-s).");
+            "The -u, -s and -f lists must have the same shape (same '|' groups and ',' items).");
+      }
+      size_t grouped = 0;
+      for (uint32_t size : mutation_category_group_sizes) grouped += size;
+      if (grouped != categories) {
+        throw std::invalid_argument("Mutation category group sizes do not add up to the number of categories.");
+      }
+      for (double rate : mutation_rates_per_division) {
+        if (rate < 0) throw std::invalid_argument("Mutation rates (-u) must be 0 or greater.");
+      }
+      for (char model : mutation_fitness_effect_models) {
+        if (model != 'u' && model != 'e' && model != 'o') {
+          throw std::invalid_argument(std::string("Unknown fitness effect model (-f) '") + model +
+                                      "'. Choices are u, e, o.");
+        }
       }
     }
 
     //! Compute the derived fields from the input fields. Call after changing any input.
     void Finalize()
     {
+      // Hand-built parameters may set only the rates and effects: broadcast a single
+      // model to every category (as the command line does) and repair the display
+      // grouping if it no longer matches.
+      const size_t categories = mutation_rates_per_division.size();
+      if (mutation_fitness_effect_models.size() == 1 && categories > 1) {
+        const char model = mutation_fitness_effect_models[0];  // copy: assign() must not alias an element
+        mutation_fitness_effect_models.assign(categories, model);
+      }
+      size_t grouped = 0;
+      for (uint32_t size : mutation_category_group_sizes) grouped += size;
+      if (grouped != categories) mutation_category_group_sizes = {static_cast<uint32_t>(categories)};
+
       transfer_dilution_factor = exp(log(2) * generations_per_transfer);
       final_population_size_at_transfer = transfer_dilution_factor * initial_population_size_after_transfer;
       binomial_sampling_transfer_probability = 1.0 / transfer_dilution_factor;
@@ -132,10 +160,12 @@ namespace bpopsim {
       std::cerr << "  Population size after transfer           (-N) = " << initial_population_size_after_transfer
                 << '\n';
       std::cerr << "  Population size at transfer                   = " << final_population_size_at_transfer << '\n';
-      std::cerr << "  Mutation rates per division              (-u) = " << to_string(mutation_rates_per_division)
+      std::cerr << "  Mutation rates per division              (-u) = " << GroupedString(mutation_rates_per_division)
                 << '\n';
-      std::cerr << "  Mutation fitness effects                 (-s) = " << to_string(mutation_fitness_effects) << '\n';
-      std::cerr << "  Mutation fitness effect model            (-f) = " << mutation_fitness_effect_model << '\n';
+      std::cerr << "  Mutation fitness effects                 (-s) = " << GroupedString(mutation_fitness_effects)
+                << '\n';
+      std::cerr << "  Mutation fitness effect models           (-f) = " << GroupedString(mutation_fitness_effect_models)
+                << '\n';
       std::cerr << "  Initial mutation fitness effects         (-1) = "
                 << substitute(first_mutation_fitness_effects_string, "\n", ",") << '\n';
       std::cerr << "  Average fitness end condition (0=OFF)         = " << average_fitness_end_condition << '\n';
@@ -147,14 +177,32 @@ namespace bpopsim {
       if (fractional_chances_of_mutation_categories.empty()) return 0;
 
       double random_fraction = rng.Uniform();
+      const uint32_t last_category = fractional_chances_of_mutation_categories.size() - 1;
       uint32_t category = 0;
-      while (random_fraction > fractional_chances_of_mutation_categories[category]) {
+      while (category < last_category && random_fraction > fractional_chances_of_mutation_categories[category]) {
         random_fraction -= fractional_chances_of_mutation_categories[category];
         category++;
       }
-
-      assert(category <= fractional_chances_of_mutation_categories.size());
+      // The fractions sum to 1 up to rounding; the loop bound guarantees the
+      // last category absorbs any residue instead of indexing past the end.
+      assert(category < fractional_chances_of_mutation_categories.size());
       return category;
+    }
+
+    //! Render a per-category list in the command-line notation: ',' within a
+    //! '|' group, '|' between groups (see mutation_category_group_sizes).
+    template <class T> std::string GroupedString(const vector<T>& per_category) const
+    {
+      std::string out;
+      size_t index = 0;
+      for (size_t group = 0; group < mutation_category_group_sizes.size(); ++group) {
+        if (group > 0) out += '|';
+        for (uint32_t i = 0; i < mutation_category_group_sizes[group] && index < per_category.size(); ++i, ++index) {
+          if (i > 0) out += ',';
+          out += to_string(per_category[index]);
+        }
+      }
+      return out;
     }
 
     // Input
@@ -166,11 +214,13 @@ namespace bpopsim {
 
     double initial_fitness = 1.0;                 // Fitness of cells at the beginning of the simulation
     bool multiplicative_fitness_effects = false;  // Multiply rather than add selection coefficients *(1+s) versus +s
-    vector<double> mutation_rates_per_division = {1E-7};  // Rate per cell division of mutations in each category
-    vector<double> mutation_fitness_effects = {
-        0.1};  // Effect of mutations in each category = selection coefficient for uniform model
-    string mutation_fitness_effect_model =
-        "u";  // Model for drawing fitness effects: 'u' uniform, 'e' exponential, 'o' one-time
+    // Mutation categories are flat lists indexed by category. On the command line
+    // they are written in '|'-separated groups of ','-separated items;
+    // mutation_category_group_sizes records that grouping for display only.
+    vector<double> mutation_rates_per_division = {1E-7};   // Rate per cell division of mutations in each category
+    vector<double> mutation_fitness_effects = {0.1};       // Effect (or mean effect) of a mutation in each category
+    vector<char> mutation_fitness_effect_models = {'u'};   // Per category: 'u' fixed, 'e' exponential, 'o' one-time
+    vector<uint32_t> mutation_category_group_sizes = {1};  // Number of categories in each '|' group
     vector<double> first_mutation_fitness_effects;  // Fitness effects of initial mutations (overrides other options)
     string first_mutation_fitness_effects_string;   //   string version of previous for printing
     double average_fitness_end_condition = 0;       // End replicate when average fitness is this or greater (0 = off)
